@@ -1,0 +1,9 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Deploys a RedHat AWX Cluster",
+    "Resources": {
+        "mockresource": {
+            "Type": "AWS::S3::Bucket"
+        }
+    }
+}

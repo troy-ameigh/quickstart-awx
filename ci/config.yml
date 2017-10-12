@@ -19,9 +19,8 @@ global:
   reporting: true
  
 tests:
-  quickstart-redhat-awxt1:
-    parameter_input: quickstart-redhat-awx-example-params1.json
-    template_file: quickstart-redhat-awx-example1.template
-  quickstart-redhat-awxt2:
-    parameter_input: quickstart-redhat-awx-example-params2.json
-    template_file: quickstart-redhat-awx-example2.template
+  dev-master:
+    parameter_input: dev-master.json
+    regions:
+      - eu-west-1
+    template_file: awx-master.template
