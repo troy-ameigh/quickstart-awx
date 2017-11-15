@@ -1,9 +1,174 @@
-{
-    "AWSTemplateFormatVersion": "2010-09-09",
-    "Description": "Deploys a RedHat AWX Cluster",
-    "Resources": {
-        "mockresource": {
-            "Type": "AWS::S3::Bucket"
-        }
-    }
-}
+AWSTemplateFormatVersion: 2010-09-09
+Description: Deploys a RedHat AWX Cluster
+Parameters:
+  QSS3BucketName:
+    AllowedPattern: "^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$"
+    ConstraintDescription: Quick Start bucket name can include numbers, lowercase
+      letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen
+      (-).
+    Default: quickstart-reference
+    Description: S3 bucket name for the Quick Start assets. Quick Start bucket name
+      can include numbers, lowercase letters, uppercase letters, and hyphens (-).
+      It cannot start or end with a hyphen (-).
+    Type: String
+  QSS3KeyPrefix:
+    AllowedPattern: ^[0-9a-zA-Z-/]*$
+    ConstraintDescription: Quick Start key prefix can include numbers, lowercase letters,
+      uppercase letters, hyphens (-), and forward slash (/).
+    Default: redhat/awx/latest/
+    Description: S3 key prefix for the Quick Start assets. Quick Start key prefix
+      can include numbers, lowercase letters, uppercase letters, hyphens (-), and
+      forward slash (/).
+    Type: String
+  Cluster:
+    Description: Name of ECS cluster to deploy awx service to
+    Type: String
+    Default: removeme
+  AWXWebRegistry:
+    Description: Name of ECR containing the awx_web image
+    Type: String
+    Default: removeme
+  AWXTaskRegistry:
+    Description: Name of ECR containing the awx_task image
+    Type: String
+    Default: removeme
+  RabbitMQRegistry:
+    Description: Name of ECR containing the rabbitmq image
+    Type: String
+    Default: removeme
+  MemcachedRegistry:
+    Description: Name of ECR containing the memcached image
+    Type: String
+    Default: removeme
+  AWXVersion:
+    Description: Which version of AWX to use
+    Type: String
+    Default: 1.0.1
+    AllowedValues:
+      - 1.0.1
+      - 1.0.0
+  AWXGitHubRepo:
+    Description: Which github should we use as the source for the build ?
+    Type: String
+    Default: https://github.com/ansible/awx.git
+  MasterUserPassword:
+    Description: Master user database Password. Only applicable if DatabaseEndpoint
+      is blank
+    Type: String
+    NoEcho: 'true'
+  MasterUsername:
+    Description: Master database Username. Only applicable if DatabaseEndpoint is
+      blank
+    Type: String
+  DatabaseEndpoint:
+    Description: Endpoint for postgres database
+    Type: String
+    Default: removeme
+Conditions:
+  GovCloudCondition: !Equals [!Ref 'AWS::Region', us-gov-west-1]
+Resources:
+  mockresource:
+    Type: AWS::S3::Bucket
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+      Policies:
+        - PolicyName: ecs-service
+          PolicyDocument:
+            Statement:
+              - Effect: Allow
+                Resource:
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*'
+                  - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*:*'
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+              - Effect: Allow
+                Resource:
+                  - !Sub 'arn:aws:s3:::${QSS3BucketName}/scripts/dummy.zip'
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+              - Effect: Allow
+                Resource:
+                  - !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${MemcachedRegistry}'
+                  - !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${RabbitMQRegistry}'
+                  - !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${AWXTaskRegistry}'
+                  - !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${AWXWebRegistry}'
+                Action:
+                  - ecr:DescribeImages
+                  - ecr:ListImages
+                  - ecr:PutImage
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:BatchGetImage
+                  - ecr:CompleteLayerUpload
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:GetRepositoryPolicy
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+              - Effect: Allow
+                Resource: "*"
+                Action:
+                  - ecr:GetAuthorizationToken
+  AWXCodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub 'awx-build-${AWS::StackName}'
+      Description: Builds the RedHat AWX container images to ECR
+      ServiceRole: !GetAtt 'CodeBuildRole.Arn'
+      Artifacts:
+        Type: no_artifacts
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: docker.io/amazonlinux:2017.09
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: AWX_TASK_REPO
+            Value: !Ref 'AWXTaskRegistry'
+          - Name: AWX_WEB_REPO
+            Value: !Ref 'AWXWebRegistry'
+          - Name: MEMCACHED_REPO
+            Value: !Ref 'MemcachedRegistry'
+          - Name: RABBITMQ_REPO
+            Value: !Ref 'RabbitMQRegistry'
+      Source:
+        Auth:
+          Type: OAUTH
+        Location: !Ref 'AWXGitHubRepo'
+        Type: GITHUB
+        BuildSpec: |
+          version: 0.2
+          phases:
+            install:
+              commands:
+                - yum install -y git gcc docker python27-pip python27-devel libffi-devel openssl-devel git
+                - /usr/bin/pip install -U docker-py ansible awscli
+                - service docker start
+                - $(aws ecr get-login --no-include-email)
+            build:
+              commands:
+                - cd installer/
+                - ansible-playbook -i inventory install.yml
+                - ACCOUNT_ID=$(echo ${CODEBUILD_BUILD_ARN} | awk '{print $4}')
+                - >
+                  docker tag awx_task ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_TASK_REPO} &&
+                  docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_TASK_REPO}
+                - >
+                  docker tag awx_web ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_WEB_REPO} &&
+                  docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_WEB_REPO}
+                - >
+                  docker tag memcached ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${MEMCACHED_REPO} &&
+                  docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${MEMCACHED_REPO}
+                - >
+                  docker tag rabbitmq ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${RABBITMQ_REPO} &&
+                  docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${RABBITMQ_REPO}
+      TimeoutInMinutes: 60
