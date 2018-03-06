@@ -1,0 +1,337 @@
+{
+    "Description": "This template deploys an ECS cluster to the provided VPC and subnets using an Auto Scaling Group\n",
+    "Parameters": {
+        "InstanceType": {
+            "Description": "Which instance type should we use to build the ECS cluster?", 
+            "Type": "String", 
+            "Default": "c4.2xlarge"
+        }, 
+        "ClusterSize": {
+            "Description": "How many ECS hosts do you want to initially deploy?", 
+            "Type": "Number", 
+            "Default": 2
+        },
+        "RemoteAccessCIDR": {
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
+            "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/x",
+            "Description": "The CIDR IP range that is permitted to access AWX. We recommend that you set this value to a trusted IP range.",
+            "Type": "String"
+        },
+        "ECSSubnets": {
+            "Description": "Choose which subnets this ECS cluster should be deployed to",
+            "Type": "List<AWS::EC2::Subnet::Id>"
+        },
+        "ALBSubnets": {
+            "Description": "Choose which subnets the Application Load Balancer should be deployed to",
+            "Type": "List<AWS::EC2::Subnet::Id>"
+        },
+        "VPC": {
+            "Description": "Choose which VPC this ECS cluster should be deployed to", 
+            "Type": "AWS::EC2::VPC::Id"
+        }
+    }, 
+    "Mappings": {
+        "AWSRegionToAMI": {
+            "us-east-2": {
+                "AMI": "ami-1c002379"
+            }, 
+            "us-east-1": {
+                "AMI": "ami-9eb4b1e5"
+            }, 
+            "us-west-2": {
+                "AMI": "ami-1d668865"
+            }, 
+            "us-west-1": {
+                "AMI": "ami-4a2c192a"
+            }, 
+            "eu-west-2": {
+                "AMI": "ami-cb1101af"
+            }, 
+            "eu-west-1": {
+                "AMI": "ami-8fcc32f6"
+            }, 
+            "eu-central-1": {
+                "AMI": "ami-0460cb6b"
+            }, 
+            "ap-northeast-1": {
+                "AMI": "ami-b743bed1"
+            }, 
+            "ap-southeast-2": {
+                "AMI": "ami-c1a6bda2"
+            }, 
+            "ap-southeast-1": {
+                "AMI": "ami-9d1f7efe"
+            }, 
+            "ca-central-1": {
+                "AMI": "ami-b677c9d2"
+            }
+        }
+    }, 
+    "Resources": {
+        "ECSCluster": {
+            "Type": "AWS::ECS::Cluster"
+        },
+        "ClusterSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+               "GroupDescription": "AWX ECS cluster hosts",
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "SourceSecurityGroupId": {
+                            "Ref": "ALBSecurityGroup"
+                        },
+                        "IpProtocol": "-1"
+                    }
+                ]
+            }
+        },
+        "ECSAutoScalingGroup": {
+            "Type": "AWS::AutoScaling::AutoScalingGroup", 
+            "Properties": {
+                "VPCZoneIdentifier": {
+                    "Ref": "ECSSubnets"
+                }, 
+                "LaunchConfigurationName": {
+                    "Ref": "ECSLaunchConfiguration"
+                }, 
+                "MinSize": {
+                    "Ref": "ClusterSize"
+                }, 
+                "MaxSize": {
+                    "Ref": "ClusterSize"
+                }, 
+                "DesiredCapacity": {
+                    "Ref": "ClusterSize"
+                }
+            }, 
+            "CreationPolicy": {
+                "ResourceSignal": {
+                    "Timeout": "PT15M"
+                }
+            }, 
+            "UpdatePolicy": {
+                "AutoScalingRollingUpdate": {
+                    "MinInstancesInService": 1, 
+                    "MaxBatchSize": 1, 
+                    "PauseTime": "PT15M", 
+                    "SuspendProcesses": [
+                        "HealthCheck", 
+                        "ReplaceUnhealthy", 
+                        "AZRebalance", 
+                        "AlarmNotification", 
+                        "ScheduledActions"
+                    ], 
+                    "WaitOnResourceSignals": true
+                }
+            }
+        }, 
+        "ECSLaunchConfiguration": {
+            "Type": "AWS::AutoScaling::LaunchConfiguration", 
+            "Properties": {
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "AWSRegionToAMI", 
+                        {
+                            "Ref": "AWS::Region"
+                        }, 
+                        "AMI"
+                    ]
+                }, 
+                "InstanceType": {
+                    "Ref": "InstanceType"
+                }, 
+                "SecurityGroups": [
+                    {
+                        "Fn::GetAtt": [
+                            "ClusterSecurityGroup",
+                            "GroupId"
+                        ]
+                    }
+                ], 
+                "IamInstanceProfile": {
+                    "Ref": "ECSInstanceProfile"
+                }, 
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "#!/bin/bash\n",
+                                "yum install -y aws-cfn-bootstrap\n",
+                                "/opt/aws/bin/cfn-init -v --region ",
+                                { "Ref": "AWS::Region" },
+                                " --stack ",
+                                { "Ref": "AWS::StackName" },
+                                " --resource ECSLaunchConfiguration\n",
+                                "/opt/aws/bin/cfn-signal -e $? --region ",
+                                { "Ref": "AWS::Region" },
+                                " --stack ",
+                                { "Ref": "AWS::StackName" },
+                                " --resource ECSAutoScalingGroup\n"
+                            ]
+                        ]
+                    }
+                }
+            }, 
+            "Metadata": {
+                "AWS::CloudFormation::Init": {
+                    "config": {
+                        "commands": {
+                            "01_add_instance_to_cluster": {
+                                "command": {
+                                    "Fn::Sub": "echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config"
+                                }
+                            }
+                        }, 
+                        "files": {
+                            "/etc/cfn/cfn-hup.conf": {
+                                "mode": 256, 
+                                "owner": "root", 
+                                "group": "root", 
+                                "content": {
+                                    "Fn::Join": [
+                                        "",
+                                        [
+                                            "[main]\n",
+                                            "stack=",
+                                            { "Ref": "AWS::StackId" },
+                                            "\n",
+                                            "region=",
+                                            { "Ref": "AWS::Region" },
+                                            "\n"
+                                        ]
+                                    ]
+                                }
+                            }, 
+                            "/etc/cfn/hooks.d/cfn-auto-reloader.conf": {
+                                "content": {
+                                    "Fn::Join": [
+                                        "\n",
+                                        [
+                                            "[cfn-auto-reloader-hook]",
+                                            "triggers=post.update",
+                                            "path=Resources.ECSLaunchConfiguration.Metadata.AWS::CloudFormation::Init",
+                                            {
+                                                "Fn::Sub": "action=/opt/aws/bin/cfn-init -v --region ${AWS::Region} --stack ${AWS::StackName} --resource ECSLaunchConfiguration"
+                                            }
+                                        ]
+                                    ]
+                                }
+                            }
+                        }, 
+                        "services": {
+                            "sysvinit": {
+                                "cfn-hup": {
+                                    "enabled": true, 
+                                    "ensureRunning": true, 
+                                    "files": [
+                                        "/etc/cfn/cfn-hup.conf", 
+                                        "/etc/cfn/hooks.d/cfn-auto-reloader.conf"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }, 
+        "ECSRole": {
+            "Type": "AWS::IAM::Role", 
+            "Properties": {
+                "Path": "/",
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": "sts:AssumeRole",
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": "ec2.amazonaws.com"
+                            }
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyName": "ecs-service", 
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "ecs:CreateCluster",
+                                        "ecs:DeregisterContainerInstance",
+                                        "ecs:DiscoverPollEndpoint",
+                                        "ecs:Poll",
+                                        "ecs:RegisterContainerInstance",
+                                        "ecs:StartTelemetrySession",
+                                        "ecs:Submit*",
+                                        "logs:CreateLogStream",
+                                        "logs:PutLogEvents",
+                                        "ecr:BatchCheckLayerAvailability",
+                                        "ecr:BatchGetImage",
+                                        "ecr:GetDownloadUrlForLayer",
+                                        "ecr:GetAuthorizationToken"
+                                    ],
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }, 
+        "ECSInstanceProfile": {
+            "Type": "AWS::IAM::InstanceProfile", 
+            "Properties": {
+                "Path": "/", 
+                "Roles": [
+                    {
+                        "Ref": "ECSRole"
+                    }
+                ]
+            }
+        },
+        "ALBSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+               "GroupDescription": "AWX ECS Application Load Balancer",
+                "VpcId": {
+                    "Ref": "VPC"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "CidrIp": {
+                            "Ref": "RemoteAccessCIDR"
+                        },
+                        "IpProtocol": "-1"
+                    }
+                ]
+            }
+        },
+        "ALB": {
+            "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+            "Properties": {
+                "Subnets": {
+                    "Ref": "ALBSubnets"
+                },
+                "SecurityGroups": [
+                    {
+                        "Ref": "ALBSecurityGroup"
+                    }
+                ]
+            }
+
+        }
+    }, 
+    "Outputs": {
+        "Cluster": {
+            "Description": "A reference to the ECS cluster", 
+            "Value": {
+                "Ref": "ECSCluster"
+            }
+        }
+    }
+}

@@ -1,6 +1,14 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: 'This template deploys an ECS cluster to the provided VPC and subnets using an Auto Scaling Group'
 Parameters:
+  AWXAdminPassword:
+    Description: AWX admin user password, required
+    Type: String
+    NoEcho: 'true'
+  AWXAdminUsername:
+    Description: AWX Administrator Username, leave blank to use the default 'admin'
+    Type: String
+    Default: 'admin'
   ECSClusterName:
     Description: Name of existing ECS Cluster, leave blank to create a new cluster
       and instances
@@ -49,7 +57,7 @@ Parameters:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
     Description: The CIDR IP range that is permitted to access AWX. We recommend that
-      you set this value to a trusted IP range. o. Only applicable if ALBArn is blank
+      you set this value to a trusted IP range. Only applicable if ALBArn is blank
     Type: String
   ECSSubnets:
     Description: Choose which subnets this ECS cluster should be deployed to. Only
@@ -67,6 +75,10 @@ Parameters:
     Description: Choose which VPC this ECS cluster should be deployed to. Only applicable
       if ECSClusterName is blank
     Type: AWS::EC2::VPC::Id
+  KeyPairName:
+    Description: SSH KeyPair name
+    Type: String
+    Default: ''
   RDSAccessCidr:
     Description: CIDR block to allow to connect to database. Only applicable if DatabaseEndpoint
       is blank
@@ -135,7 +147,7 @@ Parameters:
     Description: The compute and memory capacity of the DB instance. Only applicable
       if DatabaseEndpoint is blank
     Type: String
-    Default: db.r3.2xlarge
+    Default: db.t2.medium
     AllowedValues:
       - db.m1.small
       - db.m1.medium
@@ -477,12 +489,18 @@ Mappings:
       AMI: ami-0460cb6b
     ap-northeast-1:
       AMI: ami-b743bed1
+    ap-northeast-2:
+      AMI: ami-a5dd70cb
     ap-southeast-2:
       AMI: ami-c1a6bda2
     ap-southeast-1:
       AMI: ami-9d1f7efe
     ca-central-1:
       AMI: ami-b677c9d2
+    ap-south-1:
+      AMI: ami-ca8ad9a5
+    eu-west-3:
+      AMI: ami-6fa21412
   Version2Family:
     9.3.12:
       Family: postgres9.3
@@ -536,8 +554,7 @@ Conditions:
   CreateAWXWebECRRepository: !Equals [!Ref 'AWXWebECRRepositoryName', '']
   CreateAWXTaskECRRepository: !Equals [!Ref 'AWXTaskECRRepositoryName', '']
   CreateAWXRabbitMQECRRepository: !Equals [!Ref 'AWXRabbitMQECRRepositoryName', '']
-  CreateAWXMemcachedECRRepository: !Equals [!Ref 'AWXMemcachedECRRepositoryName',
-    '']
+  CreateAWXMemcachedECRRepository: !Equals [!Ref 'AWXMemcachedECRRepositoryName', '']
   CreateDummy: !And [!Not [!Equals [!Ref 'ECSClusterName', '']], !Not [!Equals [!Ref 'ALBArn',
         '']], !Not [!Equals [!Ref 'DatabaseEndpoint', '']], !Not [!Equals [!Ref 'AWXWebECRRepositoryName',
         '']], !Not [!Equals [!Ref 'AWXTaskECRRepositoryName', '']], !Not [!Equals [
@@ -602,6 +619,7 @@ Resources:
     Properties:
       ImageId: !FindInMap [AWSRegionToAMI, !Ref 'AWS::Region', AMI]
       InstanceType: !Ref 'InstanceType'
+      KeyName: !Ref 'KeyPairName'
       SecurityGroups:
         - !GetAtt 'ClusterSecurityGroup.GroupId'
       IamInstanceProfile: !Ref 'ECSInstanceProfile'
@@ -652,7 +670,7 @@ Resources:
                 files:
                   - /etc/cfn/cfn-hup.conf
                   - /etc/cfn/hooks.d/cfn-auto-reloader.conf
-  ECSRole:
+  ECSInstanceRole:
     Condition: CreateECSCluster
     Type: AWS::IAM::Role
     Properties:
@@ -689,7 +707,7 @@ Resources:
     Properties:
       Path: /
       Roles:
-        - !Ref 'ECSRole'
+        - !Ref 'ECSInstanceRole'
   ALBSecurityGroup:
     Condition: CreateALB
     Type: AWS::EC2::SecurityGroup
@@ -863,3 +881,12 @@ Outputs:
   DBEndpoint:
     Description: Database endpoint
     Value: !If [CreateRDS, !GetAtt 'DBInstance.Endpoint.Address', !Ref 'DatabaseEndpoint']
+  ALBARN:
+    Description: ALB ARN
+    Value: !Ref ALB
+  ALBDNSName:
+    Description: ALB DNSName
+    Value: !GetAtt 'ALB.DNSName'
+  ECSInstanceRoleARN:
+    Description: ECS IAM Role
+    Value: !GetAtt 'ECSInstanceRole.Arn'

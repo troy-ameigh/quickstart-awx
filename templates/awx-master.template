@@ -34,6 +34,11 @@ Metadata:
         Parameters:
           - QSS3BucketName
           - QSS3KeyPrefix
+      - Label:
+          default: AWX Configuration
+        Parameters:
+          - AWXAdminUsername
+          - AWXAdminPassword
     ParameterLabels:
       AvailabilityZones:
         default: Availability Zones
@@ -59,6 +64,10 @@ Metadata:
         default: Master DB Username
       MasterUserPassword:
         default: Master DB Password
+      AWXAdminUsername:
+        default: AWX Admin Username
+      AWXAdminPassword:
+        default: AWX Admin Password
       PreferredBackupWindow:
         default: Daily Backup Window
       PreferredMaintenanceWindowDay:
@@ -75,6 +84,14 @@ Parameters:
     AllowedValues:
       - 1.0.1
       - 1.0.0
+  AWXAdminPassword:
+    Description: AWX Admin Password. Required
+    Type: String
+    NoEcho: 'true'
+  AWXAdminUsername: 
+    Description: AWX Admin Username. Defaults to admin
+    Type: String
+    Default: admin
   AWXGitHubRepo:
     Description: Which github should we use as the source for the build ?
     Type: String
@@ -91,10 +108,40 @@ Parameters:
   InstanceType:
     Description: Which instance type should we use to build the ECS cluster?
     Type: String
-    Default: c4.2xlarge
+    Default: m4.large
+  DBInstanceClass:
+    Description: The compute and memory capacity of the DB instance. Only applicable
+      if DatabaseEndpoint is blank
+    Type: String
+    Default: db.t2.medium
+    AllowedValues:
+      - db.m1.small
+      - db.m1.medium
+      - db.m1.large
+      - db.m1.xlarge
+      - db.m2.xlarge
+      - db.m2.2xlarge
+      - db.m2.4xlarge
+      - db.m3.medium
+      - db.m3.large
+      - db.m3.xlarge
+      - db.m3.2xlarge
+      - db.m4.large
+      - db.m4.xlarge
+      - db.m4.2xlarge
+      - db.m4.4xlarge
+      - db.m4.10xlarge
+      - db.r3.large
+      - db.r3.xlarge
+      - db.r3.2xlarge
+      - db.r3.4xlarge
+      - db.r3.8xlarge
+      - db.t2.micro
+      - db.t2.small
+      - db.t2.medium
+      - db.t2.large
   KeyPairName:
-    Description: Public/private key pairs allow you to securely connect to your instance
-      after it launches
+    Description: Public/private key pairs allow you to securely connect to your instance after it launches
     Type: AWS::EC2::KeyPair::KeyName
   PrivateSubnet1CIDR:
     AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
@@ -108,13 +155,11 @@ Parameters:
     Type: String
   PublicSubnet1CIDR:
     Default: 10.0.128.0/20
-    Description: CIDR Block for the public DMZ subnet 2 located in Availability Zone
-      2
+    Description: CIDR Block for the public DMZ subnet 2 located in Availability Zone 2.
     Type: String
   PublicSubnet2CIDR:
     Default: 10.0.144.0/20
-    Description: CIDR Block for the optional public DMZ subnet 3 located in Availability
-      Zone 3
+    Description: CIDR Block for the optional public DMZ subnet 3 located in Availability Zone 3.
     Type: String
   QSS3BucketName:
     AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
@@ -268,7 +313,9 @@ Resources:
       TemplateURL: !Sub ['https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-aws-vpc/templates/aws-vpc.template',
         {QSS3Region: !If [GovCloudCondition, s3-us-gov-west-1, s3]}]
       Parameters:
-        AvailabilityZones: Ref
+        AvailabilityZones:  !Join
+                - ','
+                - !Ref 'AvailabilityZones'
         KeyPairName: !Ref 'KeyPairName'
         NumberOfAZs: '2'
         PrivateSubnet1ACIDR: !Ref 'PrivateSubnet1CIDR'
@@ -283,6 +330,7 @@ Resources:
       TemplateURL: !Sub ['https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}templates/awx-infrastructure.template',
         {QSS3Region: !If [GovCloudCondition, s3-us-gov-west-1, s3]}]
       Parameters:
+        KeyPairName: !Ref 'KeyPairName'
         InstanceType: !Ref 'InstanceType'
         ClusterSize: !Ref 'ClusterSize'
         VPC: !GetAtt 'VPCStack.Outputs.VPCID'
@@ -291,14 +339,19 @@ Resources:
         RemoteAccessCIDR: !Ref 'RemoteAccessCIDR'
         MasterUsername: !Ref 'MasterUsername'
         MasterUserPassword: !Ref 'MasterUserPassword'
+        AWXAdminUsername: !Ref 'AWXAdminUsername'
+        AWXAdminPassword: !Ref 'AWXAdminPassword'
         PreferredBackupWindow: !Ref 'PreferredBackupWindow'
         PreferredMaintenanceWindowDay: !Ref 'PreferredMaintenanceWindowDay'
         PreferredMaintenanceWindowStartTime: !Ref 'PreferredMaintenanceWindowStartTime'
         PreferredMaintenanceWindowEndTime: !Ref 'PreferredMaintenanceWindowEndTime'
         CidrBlocks: !Sub '${VPCStack.Outputs.PrivateSubnet1ACIDR},${VPCStack.Outputs.PrivateSubnet2ACIDR}'
-        AvailabilityZones: Ref
+        AvailabilityZones: !Join
+                - ','
+                - !Ref 'AvailabilityZones'
         RDSAccessCidr: !GetAtt 'VPCStack.Outputs.VPCCIDR'
         RDSSubnets: !Sub '${VPCStack.Outputs.PrivateSubnet1AID},${VPCStack.Outputs.PrivateSubnet2AID}'
+        DBInstanceClass: !Ref DBInstanceClass
   AWXStack:
     DependsOn: InfrastructureStack
     Type: AWS::CloudFormation::Stack
@@ -306,6 +359,8 @@ Resources:
       TemplateURL: !Sub ['https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}templates/awx.template',
         {QSS3Region: !If [GovCloudCondition, s3-us-gov-west-1, s3]}]
       Parameters:
+        QSS3BucketName: !Ref QSS3BucketName
+        QSS3KeyPrefix: !Ref QSS3KeyPrefix
         Cluster: !GetAtt 'InfrastructureStack.Outputs.Cluster'
         AWXTaskRegistry: !GetAtt 'InfrastructureStack.Outputs.AWXTaskRegistry'
         AWXWebRegistry: !GetAtt 'InfrastructureStack.Outputs.AWXWebRegistry'
@@ -316,3 +371,11 @@ Resources:
         DatabaseEndpoint: !GetAtt 'InfrastructureStack.Outputs.DBEndpoint'
         MasterUsername: !Ref 'MasterUsername'
         MasterUserPassword: !Ref 'MasterUserPassword'
+        AWXAdminUsername: !Ref 'AWXAdminUsername'
+        AWXAdminPassword: !Ref 'AWXAdminPassword'
+        ALBARN: !GetAtt 'InfrastructureStack.Outputs.ALBARN'
+        VPC: !GetAtt 'VPCStack.Outputs.VPCID'
+Outputs:
+  AWXENDPOINT:
+    Description: "Http Endpoint for AWX Cluster"
+    Value: !GetAtt 'InfrastructureStack.Outputs.ALBDNSName'

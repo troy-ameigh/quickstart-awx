@@ -1,11 +1,11 @@
 [
     {
         "ParameterKey": "AvailabilityZones",
-        "ParameterValue": "$[taskcat_genaz_2]"
+        "ParameterValue": "eu-west-1a,eu-west-1b"
     },
     {
         "ParameterKey": "KeyPairName",
-        "ParameterValue": "carthewd"
+        "ParameterValue": "dubiamroot"
     },
     {
         "ParameterKey": "RemoteAccessCIDR",
@@ -13,7 +13,7 @@
     },
     {
         "ParameterKey": "QSS3BucketName",
-        "ParameterValue": "carthewd"
+        "ParameterValue": "garganatest"
     },
     {
         "ParameterKey": "QSS3KeyPrefix",
@@ -29,6 +29,6 @@
     },
     {
         "ParameterKey": "AWXAdminPassword",
-        "ParameterValue": "password123"
+        "ParameterValue": "password1"
     }
 ]
