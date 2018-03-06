@@ -5,19 +5,19 @@
     },
     {
         "ParameterKey": "KeyPairName",
-        "ParameterValue": "carthewd"
+        "ParameterValue": "cikey"
     },
     {
         "ParameterKey": "RemoteAccessCIDR",
-        "ParameterValue": "0.0.0.0/0"
+        "ParameterValue": "1.2.3.4/32"
     },
     {
         "ParameterKey": "QSS3BucketName",
-        "ParameterValue": "carthewd"
+        "ParameterValue": "$[taskcat_autobucket]"
     },
     {
         "ParameterKey": "QSS3KeyPrefix",
-        "ParameterValue": "awx/"
+        "ParameterValue": "quickstart-redhat-awx/"
     },
     {
         "ParameterKey": "MasterUserPassword",
@@ -29,6 +29,6 @@
     },
     {
         "ParameterKey": "AWXAdminPassword",
-        "ParameterValue": "password123"
+        "ParameterValue": "$[taskcat_genpass_8A]"
     }
 ]

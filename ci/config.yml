@@ -2,7 +2,6 @@ global:
   marketplace-ami: false
   owner: quickstart-eng@amazon.com
   qsname: quickstart-redhat-awx
-  s3bucket: carthewd
   regions:
     - us-west-2
   reporting: true
