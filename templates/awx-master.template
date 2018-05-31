@@ -33,17 +33,17 @@ Metadata:
           - PreferredMaintenanceWindowStartTime
           - PreferredMaintenanceWindowEndTime
       - Label:
-          default: AWS Quick Start Configuration
-        Parameters:
-          - QSS3BucketName
-          - QSS3KeyPrefix
-      - Label:
           default: AWX Configuration
         Parameters:
           - AWXAdminUsername
           - AWXAdminPassword
           - AWXGitHubRepo
           - AWXVersion
+      - Label:
+          default: AWS Quick Start Configuration
+        Parameters:
+          - QSS3BucketName
+          - QSS3KeyPrefix
     ParameterLabels:
       AvailabilityZones:
         default: Availability Zones
