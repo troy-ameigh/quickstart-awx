@@ -71,10 +71,6 @@ Metadata:
         default: Master DB Username
       MasterUserPassword:
         default: Master DB Password
-      AWXAdminUsername:
-        default: AWX Admin Username
-      AWXAdminPassword:
-        default: AWX Admin Password
       PreferredBackupWindow:
         default: Daily Backup Window
       PreferredMaintenanceWindowDay:
