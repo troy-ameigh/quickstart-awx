@@ -49,6 +49,12 @@ Metadata:
         default: Availability Zones
       KeyPairName:
         default: Key Pair Name
+      ClusterSize:
+        default: Cluster Size
+      DBInstanceClass:
+        default: DBInstance Class
+      InstanceType:
+        default: InstanceType
       PrivateSubnet1CIDR:
         default: Private Subnet 1 CIDR
       PrivateSubnet2CIDR:
