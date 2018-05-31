@@ -1,7 +1,4 @@
-Description: This template deploys a RedHat AWX cluster. This template also deploys
-  the require VPC and ECS architecture outlined in "Implementing RedHat AWX in the
-  AWS Cloud" **WARNING** This template creates Amazon EC2 instances and related resources.
-  You will be billed for the AWS resources used if you create a stack from this template.
+Description: 'RedHat AWX cluster + VPC + ECS, License: Apache 2.0 (Please do not remove) (qs-1ogc5q7i0)'
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
