@@ -87,6 +87,14 @@ Metadata:
         default: Maintenance period - start time
       PreferredMaintenanceWindowEndTime:
         default: Maintenance period -  end time
+      AWXAdminUsername:
+        default: AWX Admin Username
+      AWXAdminPassword:
+        default: AWX Admin Password
+      AWXGitHubRepo:
+        default: AWX GitHub Repo
+      AWXVersion:
+        default: AWX Version
 Parameters:
   AWXVersion:
     Description: Which version of AWX to use
