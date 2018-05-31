@@ -108,9 +108,7 @@ Parameters:
     Type: String
     Default: https://github.com/ansible/awx.git
   AvailabilityZones:
-    Description: 'List of Availability Zones to use for the subnets in the VPC. Note:
-      The logical order is preserved and that 2 AZ''s must be provided unless the
-      Third AZ parameter is specified, in which case 3 AZ''s must me provided.'
+    Description: 'List of Availability Zones to use for the subnets in the VPC. Note: The logical order is preserved'
     Type: List<AWS::EC2::AvailabilityZone::Name>
   ClusterSize:
     Description: How many ECS hosts do you want to initially deploy?
