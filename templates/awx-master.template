@@ -1,4 +1,3 @@
-AWSTemplateFormatVersion: 2010-09-09
 Description: This template deploys a RedHat AWX cluster. This template also deploys
   the require VPC and ECS architecture outlined in "Implementing RedHat AWX in the
   AWS Cloud" **WARNING** This template creates Amazon EC2 instances and related resources.
@@ -127,8 +126,7 @@ Parameters:
     Type: String
     Default: m4.large
   DBInstanceClass:
-    Description: The compute and memory capacity of the DB instance. Only applicable
-      if DatabaseEndpoint is blank
+    Description: The compute and memory capacity of the DB instance.
     Type: String
     Default: db.t2.medium
     AllowedValues:
@@ -183,7 +181,7 @@ Parameters:
     ConstraintDescription: Quick Start bucket name can include numbers, lowercase
       letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen
       (-).
-    Default: aws-quickstart
+    Default: aws-quickstar
     Description: S3 bucket name for the Quick Start assets. Quick Start bucket name
       can include numbers, lowercase letters, uppercase letters, and hyphens (-).
       It cannot start or end with a hyphen (-).
@@ -212,7 +210,6 @@ Parameters:
   PreferredBackupWindow:
     Description: The daily time range in UTC during which automated backups are created
       (if automated backups are enabled). Cannot overlap with PreferredMaintenanceWindowTime.
-      Only applicable if DatabaseEndpoint is blank
     Type: String
     Default: 00:00-02:00
     AllowedValues:
@@ -240,8 +237,7 @@ Parameters:
       - 21:00-23:00
       - 22:00-24:00
   PreferredMaintenanceWindowDay:
-    Description: The day of the week which RDS maintenance will be performed. Only
-      applicable if DatabaseEndpoint is blank
+    Description: The day of the week which RDS maintenance will be performed.
     Type: String
     Default: Mon
     AllowedValues:
@@ -255,7 +251,6 @@ Parameters:
   PreferredMaintenanceWindowEndTime:
     Description: The weekly end time in UTC for the RDS maintenance window, must be
       more than PreferredMaintenanceWindowEndTime and cannot overlap with PreferredBackupWindow.
-      Only applicable if DatabaseEndpoint is blank
     Type: String
     Default: 06:00
     AllowedValues:
@@ -285,7 +280,6 @@ Parameters:
   PreferredMaintenanceWindowStartTime:
     Description: The weekly start time in UTC for the RDS maintenance window, must
       be less than PreferredMaintenanceWindowEndTime and cannot overlap with PreferredBackupWindow.
-      Only applicable if DatabaseEndpoint is blank
     Type: String
     Default: 04:00
     AllowedValues:
@@ -313,13 +307,11 @@ Parameters:
       - '21:00'
       - '22:00'
   MasterUserPassword:
-    Description: Master user database Password. Only applicable if DatabaseEndpoint
-      is blank
+    Description: Master user database Password.
     Type: String
     NoEcho: 'true'
   MasterUsername:
-    Description: Master database Username. Only applicable if DatabaseEndpoint is
-      blank
+    Description: Master database Username.
     Type: String
 Conditions:
   GovCloudCondition: !Equals [!Ref 'AWS::Region', us-gov-west-1]
