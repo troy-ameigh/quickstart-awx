@@ -23,23 +23,18 @@ Parameters:
   Cluster:
     Description: Name of ECS cluster to deploy awx service to
     Type: String
-    Default: removeme
   AWXWebRegistry:
     Description: Name of ECR containing the awx_web image
     Type: String
-    Default: removeme
   AWXTaskRegistry:
     Description: Name of ECR containing the awx_task
     Type: String
-    Default: removeme
   RabbitMQRegistry:
     Description: Name of ECR containing the rabbitmq image
     Type: String
-    Default: removeme
   MemcachedRegistry:
     Description: Name of ECR containing the memcached image
     Type: String
-    Default: removeme
   AWXVersion:
     Description: Which version of AWX to use
     Type: String
@@ -72,15 +67,12 @@ Parameters:
   DatabaseEndpoint:
     Description: Endpoint for postgres database
     Type: String
-    Default: removeme
   ALBARN:
     Description: Arn for ALB
     Type: String
-    Default: removeme
   VPC:
     Description: VPCID
     Type: String
-    Default: removeme
 Conditions:
   GovCloudCondition: !Equals [!Ref 'AWS::Region', us-gov-west-1]
 Resources:
