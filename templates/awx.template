@@ -42,6 +42,7 @@ Parameters:
     AllowedValues:
       - 1.0.1
       - 1.0.0
+      - 1.0.4
   AWXGitHubRepo:
     Description: Which github should we use as the source for the build ?
     Type: String
@@ -173,7 +174,11 @@ Resources:
       Source:
         Auth:
           Type: OAUTH
-        Location: !Ref 'AWXGitHubRepo'
+        Location:
+          !Join
+            - '#'
+            - - !Ref 'AWXGitHubRepo'
+              - !Ref 'AWXVersion'
         Type: GITHUB
         BuildSpec: |
           version: 0.2
@@ -187,14 +192,19 @@ Resources:
                 - set
             build:
               commands:
+                - git checkout $AWX_VERSION
                 - cd installer/
-                - echo ansible-playbook -i inventory -e pg_hostname=$pg_hostname,pg_username=$pg_username,pg_password=$pg_password,pg_database=awx,pg_port=5432,default_admin_user="$awx_username",default_admin_password="$awx_password" install.yml
-                - ansible-playbook -i inventory -e pg_hostname="$pg_hostname",pg_username="$pg_username",pg_password="$pg_password",pg_database="awx",pg_port="5432",default_admin_user="$awx_username",default_admin_password="$awx_password" install.yml
+                - echo ansible-playbook -i inventory -e awx_version=$AWX_VERSION,pg_hostname=$pg_hostname,pg_username=$pg_username,pg_password=$pg_password,pg_database=awx,pg_port=5432,default_admin_user="$awx_username",default_admin_password="$awx_password" install.yml
+                - ansible-playbook -i inventory -e awx_version=$AWX_VERSION,pg_hostname="$pg_hostname",pg_username="$pg_username",pg_password="$pg_password",pg_database="awx",pg_port="5432",default_admin_user="$awx_username",default_admin_password="$awx_password" install.yml
                 - docker container ls --all
                 - docker image ls --all
                 - export ACCOUNT_ID=$(echo ${CODEBUILD_BUILD_ARN} | awk -F':' '{print $5}')
                 - export RABBITMQ_TAG=$(docker image ls --all | grep rabbitmq | awk '{print $2}' | cut -d ':' -f 2)
+                - export RABBITMQ_IMAGE=$(docker image ls --all | grep rabbitmq | awk '{print $1}')
                 - export MEMCACHED_TAG=$(docker image ls --all | grep memcached | awk '{print $2}' | cut -d ':' -f 2)
+                - export MEMCACHED_IMAGE=$(docker image ls --all | grep memcached | awk '{print $1}')
+                - echo RabbitMQ ${RABBITMQ_IMAGE}, ${RABBITMQ_TAG}
+                - echo Memcached ${MEMCACHED_IMAGE}, ${MEMCACHED_TAG}
                 - >
                   docker tag ansible/awx_task ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_TASK_REPO}:${AWX_VERSION} &&
                   docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_TASK_REPO}:${AWX_VERSION}
@@ -202,10 +212,10 @@ Resources:
                   docker tag ansible/awx_web ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_WEB_REPO}:${AWX_VERSION} &&
                   docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_WEB_REPO}:${AWX_VERSION}
                 - >
-                  docker tag memcached:${MEMCACHED_TAG} ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${MEMCACHED_REPO}:${AWX_VERSION} &&
+                  docker tag ${MEMCACHED_IMAGE}:${MEMCACHED_TAG} ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${MEMCACHED_REPO}:${AWX_VERSION} &&
                   docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${MEMCACHED_REPO}:${AWX_VERSION}
                 - >
-                  docker tag ansible/awx_rabbitmq:${RABBITMQ_TAG} ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${RABBITMQ_REPO}:${AWX_VERSION} &&
+                  docker tag ${RABBITMQ_IMAGE}:${RABBITMQ_TAG} ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${RABBITMQ_REPO}:${AWX_VERSION} &&
                   docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${RABBITMQ_REPO}:${AWX_VERSION}
             post_build:
               commands:
@@ -338,7 +348,7 @@ Resources:
     Type: Custom::BuildContainers
     Properties:
       # FIXME: This is to force a build, increment number (should only be the versions of AWX that cause this.)
-      UpdateMe: 931
+      UpdateMe: !Ref AWXVersion
       ServiceToken: !GetAtt BuildContainersLambda.Arn
       BuildProjectName: !Ref AWXCodeBuildProject
       # cfn_signal_url: is part of the event by default hence missing here 
