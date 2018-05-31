@@ -128,7 +128,7 @@ Resources:
                 Action:
                   - ecr:GetAuthorizationToken
   AWXCodeBuildProject:
-    DependsOn: CodeBuildRole
+    DependsOn: [ CodeBuildRole, CopyZips ]
     Type: AWS::CodeBuild::Project
     Properties:
       Name: !Sub 'awx-build-${AWS::StackName}'
@@ -193,6 +193,8 @@ Resources:
                 - docker container ls --all
                 - docker image ls --all
                 - export ACCOUNT_ID=$(echo ${CODEBUILD_BUILD_ARN} | awk -F':' '{print $5}')
+                - export RABBITMQ_TAG=$(docker image ls --all | grep rabbitmq | awk '{print $2}' | cut -d ':' -f 2)
+                - export MEMCACHED_TAG=$(docker image ls --all | grep memcached | awk '{print $2}' | cut -d ':' -f 2)
                 - >
                   docker tag ansible/awx_task ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_TASK_REPO}:${AWX_VERSION} &&
                   docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_TASK_REPO}:${AWX_VERSION}
@@ -200,10 +202,10 @@ Resources:
                   docker tag ansible/awx_web ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_WEB_REPO}:${AWX_VERSION} &&
                   docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_WEB_REPO}:${AWX_VERSION}
                 - >
-                  docker tag memcached:alpine ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${MEMCACHED_REPO}:${AWX_VERSION} &&
+                  docker tag memcached:${MEMCACHED_TAG} ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${MEMCACHED_REPO}:${AWX_VERSION} &&
                   docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${MEMCACHED_REPO}:${AWX_VERSION}
                 - >
-                  docker tag rabbitmq:3 ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${RABBITMQ_REPO}:${AWX_VERSION} &&
+                  docker tag ansible/awx_rabbitmq:${RABBITMQ_TAG} ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${RABBITMQ_REPO}:${AWX_VERSION} &&
                   docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${RABBITMQ_REPO}:${AWX_VERSION}
             post_build:
               commands:
