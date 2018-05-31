@@ -349,7 +349,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Code:
-        S3Bucket: !Ref QSS3BucketName
+        S3Bucket: !Ref LambdaZipsBucket
         S3Key: 
           Fn::Join:
             - ""
