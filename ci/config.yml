@@ -1,11 +1,10 @@
 global:
   marketplace-ami: false
   owner: quickstart-eng@amazon.com
-  qsname: quickstart-redhat-awx
+  qsname: quickstart-awx
   regions:
     - us-west-2
   reporting: true
- 
 tests:
   dev-master:
     parameter_input: dev-master.json

@@ -1,7 +1,7 @@
 global:
   marketplace-ami: false
   owner: quickstart-eng@amazon.com
-  qsname: quickstart-redhat-awx
+  qsname: quickstart-awx
   regions:
     - us-east-1
     - us-west-1

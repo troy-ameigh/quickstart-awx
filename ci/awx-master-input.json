@@ -81,7 +81,7 @@
     },
     {
         "ParameterKey": "QSS3KeyPrefix",
-        "ParameterValue": "quickstart-redhat-awx/"
+        "ParameterValue": "quickstart-awx/"
     },
     {
         "ParameterKey": "RemoteAccessCIDR",
