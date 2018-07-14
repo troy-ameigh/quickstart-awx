@@ -856,6 +856,10 @@ Resources:
           FromPort: !Ref 'PortNumber'
           ToPort: !Ref 'PortNumber'
           CidrIp: !Ref 'RDSAccessCidr'
+        - IpProtocol: tcp
+          FromPort: !Ref 'PortNumber'
+          ToPort: !Ref 'PortNumber'
+          CidrIp: '172.17.0.0/24'
       SecurityGroupEgress:
         - IpProtocol: '-1'
           FromPort: '-1'

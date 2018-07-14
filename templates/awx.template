@@ -186,7 +186,7 @@ Resources:
             install:
               commands:
                 - yum install -y git gcc docker python27-pip python27-devel libffi-devel openssl-devel git curl util-linux
-                - /usr/bin/pip install -U docker-py ansible awscli
+                - /usr/bin/pip install -U docker ansible awscli
                 - service docker start
                 - $(aws ecr get-login --no-include-email)
                 - set
@@ -426,14 +426,14 @@ Resources:
       DesiredCount: 1
       TaskDefinition: !Ref AWXWebTaskDefinition
       LoadBalancers:
-        - ContainerName: !Ref AWXWebRegistry
+        - ContainerName: awxweb
           ContainerPort: 8052
           TargetGroupArn: !Ref TargetGroup 
   AWXWebTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
       ContainerDefinitions:
-        - Name: !Ref AWXWebRegistry
+        - Name: awxweb
           Hostname: awxweb
           Essential: true
           Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${AWXWebRegistry}:${AWXVersion}
@@ -443,6 +443,9 @@ Resources:
               HostPort: 80
           LogConfiguration:
             LogDriver: json-file
+          Links:
+            - "rabbitmq:rabbitmq"
+            - "awx:awx"
           Environment:
             - Name: "http_proxy"
               Value: ""
@@ -480,7 +483,7 @@ Resources:
               Value: !Ref AWXAdminUsername
             - Name: AWX_ADMIN_PASSWORD
               Value: !Ref AWXAdminPassword
-        - Name: !Ref RabbitMQRegistry
+        - Name: rabbitmq
           Hostname: rabbitmq
           Essential: true
           Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${RabbitMQRegistry}:${AWXVersion}
@@ -489,7 +492,12 @@ Resources:
             - ContainerPort: 4369
           LogConfiguration:
             LogDriver: json-file
-        - Name: !Ref AWXTaskRegistry
+          Links:
+            - "awx:awx"
+          Environment:
+            - Name: "RABBITMQ_DEFAULT_VHOST"
+              Value: "awx"
+        - Name: awx
           Hostname: awx
           Essential: true
           Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${AWXTaskRegistry}:${AWXVersion}
@@ -535,7 +543,7 @@ Resources:
               Value: !Ref AWXAdminUsername
             - Name: AWX_ADMIN_PASSWORD
               Value: !Ref AWXAdminPassword
-        - Name: !Ref MemcachedRegistry
+        - Name: memcached
           Hostname: memcached
           Essential: true
           Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${MemcachedRegistry}:${AWXVersion}
