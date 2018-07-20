@@ -446,6 +446,7 @@ Resources:
           Links:
             - "rabbitmq:rabbitmq"
             - "awx:awx"
+            - "memcached:memcached"
           Environment:
             - Name: "http_proxy"
               Value: ""
@@ -506,6 +507,8 @@ Resources:
             - ContainerPort: 8052
           LogConfiguration:
             LogDriver: json-file
+          Links:
+            - "memcached:memcached"
           Environment:
             - Name: "http_proxy"
               Value: ""
