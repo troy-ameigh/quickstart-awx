@@ -426,7 +426,7 @@ Resources:
       DesiredCount: 1
       TaskDefinition: !Ref AWXWebTaskDefinition
       LoadBalancers:
-        - ContainerName: !Ref AWXWebRegistry
+        - ContainerName: awxweb
           ContainerPort: 8052
           TargetGroupArn: !Ref TargetGroup 
   AWXWebTaskDefinition:
