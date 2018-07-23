@@ -444,8 +444,8 @@ Resources:
           LogConfiguration:
             LogDriver: json-file
           Links:
-            - "rabbitmq:rabbitmq"
             - "awx:awx"
+            - "rabbitmq:rabbitmq"
             - "memcached:memcached"
           Environment:
             - Name: "http_proxy"
@@ -493,8 +493,6 @@ Resources:
             - ContainerPort: 4369
           LogConfiguration:
             LogDriver: json-file
-          Links:
-            - "awx:awx"
           Environment:
             - Name: "RABBITMQ_DEFAULT_VHOST"
               Value: "awx"
@@ -505,10 +503,11 @@ Resources:
           Memory: 2048
           PortMappings:
             - ContainerPort: 8052
+          Links:
+            - "rabbitmq:rabbitmq"
+            - "memcached:memcached"
           LogConfiguration:
             LogDriver: json-file
-          Links:
-            - "memcached:memcached"
           Environment:
             - Name: "http_proxy"
               Value: ""
@@ -555,7 +554,6 @@ Resources:
             - ContainerPort: 11211
           LogConfiguration:
             LogDriver: json-file
-
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
