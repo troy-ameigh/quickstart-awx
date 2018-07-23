@@ -186,7 +186,7 @@ Resources:
             install:
               commands:
                 - yum install -y git gcc docker python27-pip python27-devel libffi-devel openssl-devel git curl util-linux
-                - /usr/bin/pip install -U docker ansible awscli
+                - /usr/bin/pip install -U docker-py ansible awscli
                 - service docker start
                 - $(aws ecr get-login --no-include-email)
                 - set
@@ -426,7 +426,7 @@ Resources:
       DesiredCount: 1
       TaskDefinition: !Ref AWXWebTaskDefinition
       LoadBalancers:
-        - ContainerName: awxweb
+        - ContainerName: !Ref AWXWebRegistry
           ContainerPort: 8052
           TargetGroupArn: !Ref TargetGroup 
   AWXWebTaskDefinition:
@@ -444,8 +444,8 @@ Resources:
           LogConfiguration:
             LogDriver: json-file
           Links:
-            - "rabbitmq:rabbitmq"
             - "awx:awx"
+            - "rabbitmq:rabbitmq"
             - "memcached:memcached"
           Environment:
             - Name: "http_proxy"
@@ -493,11 +493,6 @@ Resources:
             - ContainerPort: 4369
           LogConfiguration:
             LogDriver: json-file
-          Links:
-            - "awx:awx"
-          Environment:
-            - Name: "RABBITMQ_DEFAULT_VHOST"
-              Value: "awx"
         - Name: awx
           Hostname: awx
           Essential: true
@@ -505,10 +500,11 @@ Resources:
           Memory: 2048
           PortMappings:
             - ContainerPort: 8052
+          Links:
+            - "rabbitmq:rabbitmq"
+            - "memcached:memcached"
           LogConfiguration:
             LogDriver: json-file
-          Links:
-            - "memcached:memcached"
           Environment:
             - Name: "http_proxy"
               Value: ""
