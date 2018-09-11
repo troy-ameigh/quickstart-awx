@@ -1,3 +1,4 @@
+AWSTemplateFormatVersion: 2010-09-09
 Description: 'AWX cluster + VPC + ECS, License: Apache 2.0 (Please do not remove) (qs-1ogc5q7i0)'
 Metadata:
   AWS::CloudFormation::Interface:
@@ -327,59 +328,95 @@ Resources:
         PublicSubnet1CIDR: !Ref 'PublicSubnet1CIDR'
         PublicSubnet2CIDR: !Ref 'PublicSubnet2CIDR'
         VPCCIDR: !Ref 'VPCCIDR'
-  InfrastructureStack:
+  WorkloadStack:
     DependsOn: VPCStack
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: !Sub ['https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}templates/awx-infrastructure.template',
+      TemplateURL: !Sub ['https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}templates/awx-workload.template',
         {QSS3Region: !If [GovCloudCondition, s3-us-gov-west-1, s3]}]
       Parameters:
+        # ECS Instance
         KeyPairName: !Ref 'KeyPairName'
         InstanceType: !Ref 'InstanceType'
         ClusterSize: !Ref 'ClusterSize'
+        # VPC Network
         VPC: !GetAtt 'VPCStack.Outputs.VPCID'
-        ECSSubnets: !Sub '${VPCStack.Outputs.PrivateSubnet1AID},${VPCStack.Outputs.PrivateSubnet2AID}'
-        ALBSubnets: !Sub '${VPCStack.Outputs.PublicSubnet1ID},${VPCStack.Outputs.PublicSubnet2ID}'
+        RDSAccessCidr: !Ref 'VPCCIDR'
+        PrivateSubnet1ID: !GetAtt 'VPCStack.Outputs.PrivateSubnet1AID'
+        PrivateSubnet2ID: !GetAtt 'VPCStack.Outputs.PrivateSubnet2AID'
+        PublicSubnet1ID: !GetAtt 'VPCStack.Outputs.PublicSubnet1ID'
+        PublicSubnet2ID: !GetAtt 'VPCStack.Outputs.PublicSubnet2ID'
         RemoteAccessCIDR: !Ref 'RemoteAccessCIDR'
-        MasterUsername: !Ref 'MasterUsername'
-        MasterUserPassword: !Ref 'MasterUserPassword'
+        # AWX Related 
         AWXAdminUsername: !Ref 'AWXAdminUsername'
         AWXAdminPassword: !Ref 'AWXAdminPassword'
+        AWXVersion: !Ref 'AWXVersion'
+        AWXGitHubRepo: !Ref 'AWXGitHubRepo'
+        # RDS Related
+        MasterUsername: !Ref 'MasterUsername'
+        MasterUserPassword: !Ref 'MasterUserPassword'
         PreferredBackupWindow: !Ref 'PreferredBackupWindow'
         PreferredMaintenanceWindowDay: !Ref 'PreferredMaintenanceWindowDay'
         PreferredMaintenanceWindowStartTime: !Ref 'PreferredMaintenanceWindowStartTime'
         PreferredMaintenanceWindowEndTime: !Ref 'PreferredMaintenanceWindowEndTime'
-        CidrBlocks: !Sub '${VPCStack.Outputs.PrivateSubnet1ACIDR},${VPCStack.Outputs.PrivateSubnet2ACIDR}'
-        AvailabilityZones: !Join
-                - ','
-                - !Ref 'AvailabilityZones'
-        RDSAccessCidr: !GetAtt 'VPCStack.Outputs.VPCCIDR'
-        RDSSubnets: !Sub '${VPCStack.Outputs.PrivateSubnet1AID},${VPCStack.Outputs.PrivateSubnet2AID}'
-        DBInstanceClass: !Ref DBInstanceClass
-  AWXStack:
-    DependsOn: InfrastructureStack
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub ['https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}templates/awx.template',
-        {QSS3Region: !If [GovCloudCondition, s3-us-gov-west-1, s3]}]
-      Parameters:
-        QSS3BucketName: !Ref QSS3BucketName
-        QSS3KeyPrefix: !Ref QSS3KeyPrefix
-        Cluster: !GetAtt 'InfrastructureStack.Outputs.Cluster'
-        AWXTaskRegistry: !GetAtt 'InfrastructureStack.Outputs.AWXTaskRegistry'
-        AWXWebRegistry: !GetAtt 'InfrastructureStack.Outputs.AWXWebRegistry'
-        RabbitMQRegistry: !GetAtt 'InfrastructureStack.Outputs.RabbitMQRegistry'
-        MemcachedRegistry: !GetAtt 'InfrastructureStack.Outputs.MemcachedRegistry'
-        AWXVersion: !Ref 'AWXVersion'
-        AWXGitHubRepo: !Ref 'AWXGitHubRepo'
-        DatabaseEndpoint: !GetAtt 'InfrastructureStack.Outputs.DBEndpoint'
-        MasterUsername: !Ref 'MasterUsername'
-        MasterUserPassword: !Ref 'MasterUserPassword'
-        AWXAdminUsername: !Ref 'AWXAdminUsername'
-        AWXAdminPassword: !Ref 'AWXAdminPassword'
-        ALBARN: !GetAtt 'InfrastructureStack.Outputs.ALBARN'
-        VPC: !GetAtt 'VPCStack.Outputs.VPCID'
+        DBInstanceClass: !Ref 'DBInstanceClass'
+        # Quick Starts related
+        QSS3BucketName: !Ref 'QSS3BucketName'
+        QSS3KeyPrefix: !Ref 'QSS3KeyPrefix'
+  # InfrastructureStack:
+  #   DependsOn: VPCStack
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: !Sub ['https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}templates/awx-infrastructure.template',
+  #       {QSS3Region: !If [GovCloudCondition, s3-us-gov-west-1, s3]}]
+  #     Parameters:
+  #       KeyPairName: !Ref 'KeyPairName'
+  #       InstanceType: !Ref 'InstanceType'
+  #       ClusterSize: !Ref 'ClusterSize'
+  #       VPC: !GetAtt 'VPCStack.Outputs.VPCID'
+  #       ECSSubnets: !Sub '${VPCStack.Outputs.PrivateSubnet1AID},${VPCStack.Outputs.PrivateSubnet2AID}'
+  #       ALBSubnets: !Sub '${VPCStack.Outputs.PublicSubnet1ID},${VPCStack.Outputs.PublicSubnet2ID}'
+  #       RemoteAccessCIDR: !Ref 'RemoteAccessCIDR'
+  #       MasterUsername: !Ref 'MasterUsername'
+  #       MasterUserPassword: !Ref 'MasterUserPassword'
+  #       AWXAdminUsername: !Ref 'AWXAdminUsername'
+  #       AWXAdminPassword: !Ref 'AWXAdminPassword'
+  #       PreferredBackupWindow: !Ref 'PreferredBackupWindow'
+  #       PreferredMaintenanceWindowDay: !Ref 'PreferredMaintenanceWindowDay'
+  #       PreferredMaintenanceWindowStartTime: !Ref 'PreferredMaintenanceWindowStartTime'
+  #       PreferredMaintenanceWindowEndTime: !Ref 'PreferredMaintenanceWindowEndTime'
+  #       CidrBlocks: !Sub '${VPCStack.Outputs.PrivateSubnet1ACIDR},${VPCStack.Outputs.PrivateSubnet2ACIDR}'
+  #       AvailabilityZones: !Join
+  #               - ','
+  #               - !Ref 'AvailabilityZones'
+  #       RDSAccessCidr: !GetAtt 'VPCStack.Outputs.VPCCIDR'
+  #       RDSSubnets: !Sub '${VPCStack.Outputs.PrivateSubnet1AID},${VPCStack.Outputs.PrivateSubnet2AID}'
+  #       DBInstanceClass: !Ref DBInstanceClass
+        
+  # AWXStack:
+  #   DependsOn: InfrastructureStack
+  #   Type: AWS::CloudFormation::Stack
+  #   Properties:
+  #     TemplateURL: !Sub ['https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}templates/awx.template',
+  #       {QSS3Region: !If [GovCloudCondition, s3-us-gov-west-1, s3]}]
+  #     Parameters:
+  #       QSS3BucketName: !Ref QSS3BucketName
+  #       QSS3KeyPrefix: !Ref QSS3KeyPrefix
+  #       Cluster: !GetAtt 'InfrastructureStack.Outputs.Cluster'
+  #       AWXTaskRegistry: !GetAtt 'InfrastructureStack.Outputs.AWXTaskRegistry'
+  #       AWXWebRegistry: !GetAtt 'InfrastructureStack.Outputs.AWXWebRegistry'
+  #       RabbitMQRegistry: !GetAtt 'InfrastructureStack.Outputs.RabbitMQRegistry'
+  #       MemcachedRegistry: !GetAtt 'InfrastructureStack.Outputs.MemcachedRegistry'
+  #       AWXVersion: !Ref 'AWXVersion'
+  #       AWXGitHubRepo: !Ref 'AWXGitHubRepo'
+  #       DatabaseEndpoint: !GetAtt 'InfrastructureStack.Outputs.DBEndpoint'
+  #       MasterUsername: !Ref 'MasterUsername'
+  #       MasterUserPassword: !Ref 'MasterUserPassword'
+  #       AWXAdminUsername: !Ref 'AWXAdminUsername'
+  #       AWXAdminPassword: !Ref 'AWXAdminPassword'
+  #       ALBARN: !GetAtt 'InfrastructureStack.Outputs.ALBARN'
+  #       VPC: !GetAtt 'VPCStack.Outputs.VPCID'
 Outputs:
   AWXENDPOINT:
     Description: "Http Endpoint for AWX Cluster"
-    Value: !GetAtt 'InfrastructureStack.Outputs.ALBDNSName'
+    Value: !GetAtt 'WorkloadStack.Outputs.ALBDNSName'

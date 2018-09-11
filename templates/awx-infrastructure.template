@@ -1,14 +1,6 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: 'This template deploys an ECS cluster to the provided VPC and subnets using an Auto Scaling Group'
 Parameters:
-  AWXAdminPassword:
-    Description: AWX admin user password, required
-    Type: String
-    NoEcho: 'true'
-  AWXAdminUsername:
-    Description: AWX Administrator Username, leave blank to use the default 'admin'
-    Type: String
-    Default: 'admin'
   ECSClusterName:
     Description: Name of existing ECS Cluster, leave blank to create a new cluster
       and instances
@@ -116,10 +108,6 @@ Parameters:
     AllowedValues:
       - 'true'
       - 'false'
-  AvailabilityZones:
-    Description: list of availability zones to use, must be the same quantity as specified
-      in NumberOfAvailabilityZones. Only applicable if DatabaseEndpoint is blank
-    Type: List<AWS::EC2::AvailabilityZone::Name>
   BackupRetentionPeriod:
     Description: The number of days during which automatic DB snapshots are retained.
       Setting 0 disables automatic snapshots, maximum value is 35. Only applicable
@@ -128,12 +116,6 @@ Parameters:
     Default: '35'
     MinValue: '0'
     MaxValue: '35'
-  CidrBlocks:
-    Description: comma seperated list of CIDR blocks to place RDS into, must be the
-      same quantity as specified in NumberOfAvailabilityZones. Only applicable if
-      DatabaseEndpoint is blank
-    Type: CommaDelimitedList
-    Default: 172.16.29.0/26,172.16.29.64/26
   CopyTagsToSnapshot:
     Description: Indicates whether to copy all of the user-defined tags from the DB
       instance to snapshots of the DB instance. Only applicable if DatabaseEndpoint

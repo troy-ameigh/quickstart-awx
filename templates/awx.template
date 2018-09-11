@@ -42,9 +42,8 @@ Parameters:
     AllowedValues:
       - 1.0.1
       - 1.0.0
-      - 1.0.4
   AWXGitHubRepo:
-    Description: Which github should we use as the source for the build ?
+    Description: Which github should we use as the source for the build
     Type: String
     Default: https://github.com/ansible/awx.git
   MasterUserPassword:
@@ -73,7 +72,7 @@ Parameters:
     Type: String
   VPC:
     Description: VPCID
-    Type: String
+    Type: AWS::EC2::VPC::Id
 Conditions:
   GovCloudCondition: !Equals [!Ref 'AWS::Region', us-gov-west-1]
 Resources:
@@ -590,8 +589,3 @@ Resources:
       LoadBalancerArn: !Ref 'ALBARN'
       Port: '80'
       Protocol: HTTP
-# Container port info
-# Web 80
-# Task 8052
-# RabbitMQ 4369
-# Memcache 11211
