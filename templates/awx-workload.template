@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: 'This template deploys ECS Cluster ALB and AWX Cluster into a provided VPC'
+Description: 'This template deploys ECS Cluster ALB and AWX Cluster into a provided VPC: (Please do not remove) (qs-1otb0cln5)'
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
