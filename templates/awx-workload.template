@@ -7,7 +7,6 @@ Metadata:
           default: Network Configuration
         Parameters:
           - VPC
-          - AvailabilityZones
           - PublicSubnet1ID
           - PublicSubnet2ID
           - PrivateSubnet1ID
@@ -43,8 +42,16 @@ Metadata:
           - QSS3BucketName
           - QSS3KeyPrefix
     ParameterLabels:
-      AvailabilityZones:
-        default: Availability Zones
+      VPCID:
+        default: The ID of your existing VPC.
+      PrivateSubnet1ID:
+        default: Private subnet 1 located in Availability Zone 1.
+      PrivateSubnet2ID:
+        default: Private subnet 2 located in Availability Zone 2.
+      PublicSubnet1ID:
+        default: Public DMZ subnet 1 located in Availability Zone 1.
+      PublicSubnet2ID:
+        default: Public DMZ subnet 2 located in Availability Zone 2.
       KeyPairName:
         default: Key Pair Name
       ClusterSize:
@@ -57,10 +64,6 @@ Metadata:
         default: Quick Start S3 Bucket Name
       QSS3KeyPrefix:
         default: Quick Start S3 Key Prefix
-      RemoteAccessCIDR:
-        default: Allowed Bastion External Access CIDR
-      VPCCIDR:
-        default: VPC CIDR
       MasterUsername:
         default: Master DB Username
       MasterUserPassword:
@@ -93,16 +96,16 @@ Parameters:
     Description: CIDR block of the VPC for RDS Access.
     Type: String
   PrivateSubnet1ID:
-    Description: Private subnet 1 located in Availability Zone 1.
+    Description: Private subnet 1 in Availability Zone 1.
     Type: AWS::EC2::Subnet::Id
   PrivateSubnet2ID:
-    Description: Private subnet 2 located in Availability Zone 2.
+    Description: Private subnet 2 in Availability Zone 2.
     Type: AWS::EC2::Subnet::Id
   PublicSubnet1ID:
-    Description: Public DMZ subnet 1 located in Availability Zone 1.
+    Description: Public DMZ subnet 1 in Availability Zone 1.
     Type: AWS::EC2::Subnet::Id
   PublicSubnet2ID:
-    Description: Public DMZ subnet 2 located in Availability Zone 2.
+    Description: Public DMZ subnet 2 in Availability Zone 2.
     Type: AWS::EC2::Subnet::Id
 
   # AWX Related Information
