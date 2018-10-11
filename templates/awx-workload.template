@@ -43,15 +43,17 @@ Metadata:
           - QSS3KeyPrefix
     ParameterLabels:
       VPCID:
-        default: The ID of your existing VPC.
+        default: The ID of your existing VPC
       PrivateSubnet1ID:
-        default: Private subnet 1 located in Availability Zone 1.
+        default: Private subnet 1 in Availability Zone 1
       PrivateSubnet2ID:
-        default: Private subnet 2 located in Availability Zone 2.
+        default: Private subnet 2 in Availability Zone 2
       PublicSubnet1ID:
-        default: Public DMZ subnet 1 located in Availability Zone 1.
+        default: Public DMZ subnet 1 in Availability Zone 1
       PublicSubnet2ID:
-        default: Public DMZ subnet 2 located in Availability Zone 2.
+        default: Public DMZ subnet 2 in Availability Zone 2
+      RemoteAccessCIDR:
+        default: Allowed Bastion External Access CIDR
       KeyPairName:
         default: Key Pair Name
       ClusterSize:
@@ -64,6 +66,8 @@ Metadata:
         default: Quick Start S3 Bucket Name
       QSS3KeyPrefix:
         default: Quick Start S3 Key Prefix
+      RDSAccessCidr:
+        default: AWS RDS Access CIDR 
       MasterUsername:
         default: Master DB Username
       MasterUserPassword:
