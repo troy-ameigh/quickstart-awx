@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: 'AWX cluster + VPC + ECS, License: Apache 2.0 (Please do not remove) (qs-1ogc5q7i0)'
+Description: 'AWX cluster + VPC + ECS, License: Apache 2.0 (Please do not remove)'
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
