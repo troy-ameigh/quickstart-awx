@@ -42,7 +42,7 @@ Metadata:
           - QSS3BucketName
           - QSS3KeyPrefix
     ParameterLabels:
-      VPCID:
+      VPC:
         default: The ID of your existing VPC
       PrivateSubnet1ID:
         default: Private subnet 1 in Availability Zone 1
@@ -67,7 +67,7 @@ Metadata:
       QSS3KeyPrefix:
         default: Quick Start S3 Key Prefix
       RDSAccessCidr:
-        default: AWS RDS Access CIDR 
+        default: Amazon RDS Access CIDR 
       MasterUsername:
         default: Master DB Username
       MasterUserPassword:
