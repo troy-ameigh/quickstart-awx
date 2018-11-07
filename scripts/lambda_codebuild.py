@@ -1,43 +1,138 @@
 """
 This function kicks off a code build job
 """
+from __future__ import print_function
+import traceback
 import httplib
 import urlparse
 import json
+import botocore
 import boto3
+import logging
+
+def log_config(event, loglevel=None, botolevel=None):
+    if 'ResourceProperties' in event.keys():
+        if 'loglevel' in event['ResourceProperties'] and not loglevel:
+            loglevel = event['ResourceProperties']['loglevel']
+        if 'botolevel' in event['ResourceProperties'] and not botolevel:
+            botolevel = event['ResourceProperties']['botolevel']
+    if not loglevel:
+        loglevel = 'warning'
+    if not botolevel:
+        botolevel = 'error'
+    # Set log verbosity levels
+    loglevel = getattr(logging, loglevel.upper(), 20)
+    botolevel = getattr(logging, botolevel.upper(), 40)
+    mainlogger = logging.getLogger()
+    mainlogger.setLevel(loglevel)
+    logging.getLogger('boto3').setLevel(botolevel)
+    logging.getLogger('botocore').setLevel(botolevel)
+    # Set log message format
+    logfmt = '[%(requestid)s][%(asctime)s][%(levelname)s] %(message)s \n'
+    mainlogger.handlers[0].setFormatter(logging.Formatter(logfmt))
+    return logging.LoggerAdapter(mainlogger, {'requestid': event['RequestId']})
+
+# initialise logger
+logger = log_config({"RequestId": "CONTAINER_INIT"})
+logger.info('Logging configured')
+# set global to track init failures
+init_failed = False
+
+try:
+    # Place initialization code here
+    logger.info("Container initialization completed")
+except Exception as e:
+    logger.error(e, exc_info=True)
+    init_failed = e
 
 def lambda_handler(event, context):
     """
     Main Lambda Handling function
     """
-    # Log the received event
-    print "Received event: " + json.dumps(event, indent=2)
+    global logger
+    global account_id
+    logger = log_config(event)
+    logger.debug(event)
+
     # Setup base response
     response = get_response_dict(event)
+
+    account_id = context.invoked_function_arn.split(":")[4]
+    print(account_id)
+
 
     # CREATE UPDATE (want to avoid rebuilds unless something changed)
     if event['RequestType'] in ("Create", "Update"):
         try:
-            print "Kicking off Build"
+            logger.debug("Kicking off Build")
             execute_build(event)
         except Exception, exce:
-            print "ERROR: Build threw exception" + exce.message
-            print exce
+            logger.error("Build threw exception" + exce.message)
             # Signal back that we failed
             return send_response(event, get_response_dict(event), "FAILED", exce.message)
         else: 
             # We want codebuild to send the signal
-            print "Build Kicked off ok CodeBuild should signal back"
+            logger.info("Build Kicked off ok CodeBuild should signal back")
             return
     elif event['RequestType'] == "Delete":
-        # DELETE (Let CFN delet the artifacts etc as per normal)
+        try:
+            # DELETE (Let CFN delete the artifacts etc as per normal)
+            # Cleanup the images in the repository
+            logger.debug("Cleaning up repositories and images")
+            cleanup_images(event)
+        except Exception,exce:
+            # Signal back that we failed
+            logger.error("exception: " + exce.message)
+            response['PhysicalResourceId'] = "1233244324"
+            return send_response(event, response, "FAILED", exce.message)
+        
         # signal success to CFN
-        print "Delete event nothing to do just signal back"
+        logger.info("Cleanup complete signal back")
         response['PhysicalResourceId'] = "1233244324"
         return send_response(event, response)
     else: # Invalid RequestType
-        print "ERROR: Invalid request type send error signal to cfn"
+        logger.error("Invalid request type send error signal to cfn: " + event['RequestType'] + " (expecting: Create, Update, Delete )" )
         return send_response(event, response, "FAILED", "Invalid RequestType: Create, Update, Delete")
+
+
+def cleanup_images(event):
+    """
+    loop over and delete images in each repo
+    """
+    properties = event['ResourceProperties']
+    for repository in ['AWXTaskRegistry','AWXWebRegistry','RabbitMQRegistry','MemcachedRegistry']:
+        logger.debug("Cleaning Up: " + repository)
+        logger.debug("Trying to cleanup: " + properties[repository])
+        cleanup_images_repo(properties[repository])
+
+
+def cleanup_images_repo(repository):
+    """
+    Delete Container images
+    """
+    ecr_client = boto3.client('ecr')
+    response = ecr_client.describe_images(
+        registryId=globals()['account_id'],
+        repositoryName=repository
+    )
+    
+    imageIds = []
+    for imageDetail in response['imageDetails']:
+        imageIds.append(
+            {
+                'imageDigest': imageDetail['imageDigest'],
+            }
+        )
+
+    if len(imageIds):
+        # delete images
+        logger.debug("Deleting images")
+        response = ecr_client.batch_delete_image(
+            registryId=globals()['account_id'],
+            repositoryName=repository,
+            imageIds=imageIds
+        )
+
 
 def execute_build(event):
     """
@@ -87,7 +182,7 @@ def send_response(event, response, status=None, reason=None):
         url = urlparse.urlparse(event['ResponseURL'])
         body = json.dumps(response)
         https = httplib.HTTPSConnection(url.hostname)
-        https.request('PUT', url.path+'?'+url.query, body)
-        print "Sent CFN Response"
+        https.request('PUT', url.path + '?' + url.query, body)
+        logger.info("Sent CFN Response")
 
     return response

@@ -346,10 +346,17 @@ Resources:
   BuildContainers:
     Type: Custom::BuildContainers
     Properties:
-      # FIXME: This is to force a build, increment number (should only be the versions of AWX that cause this.)
+      # Different version cause a rebuild.
       UpdateMe: !Ref AWXVersion
       ServiceToken: !GetAtt BuildContainersLambda.Arn
       BuildProjectName: !Ref AWXCodeBuildProject
+      # Logging
+      loglevel: 'debug'
+      # For deletion of the container images.
+      AWXTaskRegistry: !Ref AWXTaskRegistry
+      AWXWebRegistry: !Ref AWXWebRegistry
+      MemcachedRegistry: !Ref MemcachedRegistry
+      RabbitMQRegistry: !Ref  RabbitMQRegistry
       # cfn_signal_url: is part of the event by default hence missing here 
       # cfn_stack_id: is part of the event by default 
       # cfn_request_id: also part of the event
@@ -357,6 +364,7 @@ Resources:
       # Lambda function passes the above into the build project when invoking StartBuild
   BuildContainersLambda:
     DependsOn: [ BuildContainersLambdaExecutionRole, CopyZips ]
+    DeletionPolicy: Retain
     Type: AWS::Lambda::Function
     Properties:
       Code:
@@ -372,6 +380,7 @@ Resources:
       Role: !GetAtt BuildContainersLambdaExecutionRole.Arn
   BuildContainersLambdaExecutionRole:
     Type: AWS::IAM::Role
+    DeletionPolicy: Retain
     Properties:
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -392,6 +401,24 @@ Resources:
             Action:
             - codebuild:StartBuild
             Resource: !GetAtt AWXCodeBuildProject.Arn
+          - Effect: Allow
+            Resource:
+              - !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${MemcachedRegistry}'
+              - !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${RabbitMQRegistry}'
+              - !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${AWXTaskRegistry}'
+              - !Sub 'arn:aws:ecr:${AWS::Region}:${AWS::AccountId}:repository/${AWXWebRegistry}'
+            Action:
+              - ecr:DescribeImages
+              - ecr:ListImages
+              - ecr:BatchGetImage
+              - ecr:BatchDeleteImage
+          - Effect: Allow
+            Resource:
+              - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*'
+            Action:
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
   ECSServiceRole:
     Type: AWS::IAM::Role
     Properties:
