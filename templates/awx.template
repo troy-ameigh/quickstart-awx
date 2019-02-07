@@ -184,7 +184,7 @@ Resources:
           phases:
             install:
               commands:
-                - yum install -y git gcc docker python27-pip python27-devel libffi-devel openssl-devel git curl util-linux
+                - yum install -y git gcc docker python27-pip python27-devel libffi-devel openssl-devel curl util-linux
                 - /usr/bin/pip install -U docker ansible awscli
                 - service docker start
                 - $(aws ecr get-login --no-include-email)
