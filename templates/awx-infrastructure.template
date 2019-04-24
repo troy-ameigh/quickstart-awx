@@ -640,7 +640,7 @@ Resources:
     Condition: CreateECSCluster
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
-      ImageId: !FindInMap [AWSRegionToAMI, !Ref 'AWS::Region', AMI]
+      ImageId: !FindInMap [AWSAMIRegionMap, !Ref 'AWS::Region', ECSAMI]
       InstanceType: !Ref 'InstanceType'
       KeyName: !Ref 'KeyPairName'
       SecurityGroups:
