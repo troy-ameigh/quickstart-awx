@@ -42,6 +42,21 @@ Parameters:
     AllowedValues:
       - 1.0.1
       - 1.0.0
+      - 1.0.2
+      - 1.0.3
+      - 1.0.4
+      - 1.0.5
+      - 1.0.6
+      - 1.0.7
+      - 1.0.8
+      - 2.0.0
+      - 2.0.1
+      - 2.1.0
+      - 2.1.1
+      - 2.1.2
+      - 3.0.0
+      - 3.0.1
+      - 4.0.0
   AWXGitHubRepo:
     Description: Which github should we use as the source for the build
     Type: String
@@ -100,6 +115,7 @@ Resources:
                   - logs:CreateLogGroup
                   - logs:CreateLogStream
                   - logs:PutLogEvents
+                  - logs:DescribeLogStreams
               - Effect: Allow
                 Resource:
                   - !Sub 'arn:aws:s3:::${QSS3BucketName}/scripts/dummy.zip'
@@ -185,7 +201,7 @@ Resources:
             install:
               commands:
                 - yum install -y git gcc docker python27-pip python27-devel libffi-devel openssl-devel git curl util-linux
-                - /usr/bin/pip install -U docker ansible awscli
+                - /usr/bin/pip install -U docker docker-compose ansible awscli
                 - service docker start
                 - $(aws ecr get-login --no-include-email)
                 - set
@@ -193,10 +209,14 @@ Resources:
               commands:
                 - git checkout $AWX_VERSION
                 - cd installer/
-                - echo ansible-playbook -i inventory -e awx_version=$AWX_VERSION,pg_hostname=$pg_hostname,pg_username=$pg_username,pg_password=$pg_password,pg_database=awx,pg_port=5432,default_admin_user="$awx_username",default_admin_password="$awx_password" install.yml
-                - ansible-playbook -i inventory -e awx_version=$AWX_VERSION,pg_hostname="$pg_hostname",pg_username="$pg_username",pg_password="$pg_password",pg_database="awx",pg_port="5432",default_admin_user="$awx_username",default_admin_password="$awx_password" install.yml
+                - sed -i "s/^dockerhub_version=latest/dockerhub_version=$AWS_VERSION/g" inventory
+                - echo ansible-playbook -i inventory -e awx_version="$AWX_VERSION" -e pg_hostname="$pg_hostname" -e pg_username="$pg_username" -e pg_password="$pg_password" -e pg_database="awx" -e pg_port=5432 -e default_admin_user="$awx_username" -e default_admin_password="$awx_password" install.yml
+                - ansible-playbook -i inventory -e awx_version="$AWX_VERSION" -e pg_hostname="$pg_hostname" -e pg_username="$pg_username" -e pg_password="$pg_password" -e pg_database="awx" -e pg_port=5432 -e default_admin_user="$awx_username" -e default_admin_password="$awx_password" install.yml
+                - sleep 240
                 - docker container ls --all
                 - docker image ls --all
+                - for i in $(docker ps -q); do docker logs $i; done
+                - for i in $(docker ps -q); do echo "CONTAINER $i\\n========="; docker inspect $i; echo "========="; done
                 - export ACCOUNT_ID=$(echo ${CODEBUILD_BUILD_ARN} | awk -F':' '{print $5}')
                 - export RABBITMQ_TAG=$(docker image ls --all | grep rabbitmq | awk '{print $2}' | cut -d ':' -f 2)
                 - export RABBITMQ_IMAGE=$(docker image ls --all | grep rabbitmq | awk '{print $1}')
@@ -205,10 +225,10 @@ Resources:
                 - echo RabbitMQ ${RABBITMQ_IMAGE}, ${RABBITMQ_TAG}
                 - echo Memcached ${MEMCACHED_IMAGE}, ${MEMCACHED_TAG}
                 - >
-                  docker tag ansible/awx_task ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_TASK_REPO}:${AWX_VERSION} &&
+                  docker tag ansible/awx_task:${AWX_VERSION} ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_TASK_REPO}:${AWX_VERSION} &&
                   docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_TASK_REPO}:${AWX_VERSION}
                 - >
-                  docker tag ansible/awx_web ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_WEB_REPO}:${AWX_VERSION} &&
+                  docker tag ansible/awx_web:${AWX_VERSION} ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_WEB_REPO}:${AWX_VERSION} &&
                   docker push ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${AWX_WEB_REPO}:${AWX_VERSION}
                 - >
                   docker tag ${MEMCACHED_IMAGE}:${MEMCACHED_TAG} ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${MEMCACHED_REPO}:${AWX_VERSION} &&
@@ -227,6 +247,7 @@ Resources:
                   then
                     curl -X PUT -H 'Content-Type:' -d "{\"StackId\":\"$cfn_stack_id\", \"RequestId\":\"$cfn_request_id\", \"LogicalResourceId\":\"$cfn_logical_resource_id\", \"PhysicalResourceId\":\"$UUID\", \"Status\":\"SUCCESS\"}" "$cfn_signal_url"
                   else
+                    # Add Reason here and test.
                     curl -X PUT -H 'Content-Type:' -d "{\"StackId\":\"$cfn_stack_id\", \"RequestId\":\"$cfn_request_id\", \"LogicalResourceId\":\"$cfn_logical_resource_id\", \"PhysicalResourceId\":\"$UUID\", \"Status\":\"FAILED\"}" "$cfn_signal_url"
                   fi
       # FIXME: get this close to the actual time things take with 5 minute margin added for safety
@@ -453,6 +474,10 @@ Resources:
         - ContainerName: awxweb
           ContainerPort: 8052
           TargetGroupArn: !Ref TargetGroup 
+  ContainerLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub awx-${AWS::StackName}
   AWXWebTaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
@@ -466,7 +491,11 @@ Resources:
             - ContainerPort: 8052
               HostPort: 80
           LogConfiguration:
-            LogDriver: json-file
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ContainerLogGroup
+              awslogs-region: !Sub ${AWS::Region}
+              awslogs-stream-prefix: awxweb
           Links:
             - "awx:awx"
             - "rabbitmq:rabbitmq"
@@ -516,10 +545,20 @@ Resources:
           PortMappings:
             - ContainerPort: 4369
           LogConfiguration:
-            LogDriver: json-file
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ContainerLogGroup
+              awslogs-region: !Sub ${AWS::Region}
+              awslogs-stream-prefix: rabbitmq
           Environment:
             - Name: "RABBITMQ_DEFAULT_VHOST"
               Value: "awx"
+            - Name: "RABBITMQ_DEFAULT_USER"
+              Value: "guest"
+            - Name: "RABBITMQ_DEFAULT_PASS"
+              Value: "guest"
+            - Name: "RABBITMQ_ERLANG_COOKIE"
+              Value: "cookiemonster"
         - Name: awx
           Hostname: awx
           Essential: true
@@ -531,7 +570,11 @@ Resources:
             - "rabbitmq:rabbitmq"
             - "memcached:memcached"
           LogConfiguration:
-            LogDriver: json-file
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ContainerLogGroup
+              awslogs-region: !Sub ${AWS::Region}
+              awslogs-stream-prefix: awxtask
           Environment:
             - Name: "http_proxy"
               Value: ""
@@ -577,7 +620,11 @@ Resources:
           PortMappings:
             - ContainerPort: 11211
           LogConfiguration:
-            LogDriver: json-file
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref ContainerLogGroup
+              awslogs-region: !Sub ${AWS::Region}
+              awslogs-stream-prefix: memcached
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:

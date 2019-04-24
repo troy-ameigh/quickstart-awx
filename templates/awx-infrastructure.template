@@ -458,7 +458,7 @@ Mappings:
     AMI:
       ECSAMI: "ECS Optimized AMI"
     us-east-2:
-      ECSAMI: ami-1c002379
+      ECSAMI: ami-00cffcd24cb08edf1
     us-east-1:
       ECSAMI: ami-9eb4b1e5
     us-west-2:
@@ -487,7 +487,7 @@ Mappings:
       ECSAMI: ami-6fa21412
   AWSRegionToAMI:
     us-east-2:
-      AMI: ami-1c002379
+      AMI: ami-00cffcd24cb08edf1
     us-east-1:
       AMI: ami-9eb4b1e5
     us-west-2:
@@ -708,6 +708,7 @@ Resources:
                   - ecs:StartTelemetrySession
                   - ecs:Submit*
                   - logs:CreateLogStream
+                  - logs:CreateLogGroup
                   - logs:PutLogEvents
                   - ecr:BatchCheckLayerAvailability
                   - ecr:BatchGetImage
