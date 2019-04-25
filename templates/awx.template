@@ -38,17 +38,8 @@ Parameters:
   AWXVersion:
     Description: Which version of AWX to use
     Type: String
-    Default: 1.0.1
+    Default: 3.0.1
     AllowedValues:
-      - 1.0.1
-      - 1.0.0
-      - 1.0.2
-      - 1.0.3
-      - 1.0.4
-      - 1.0.5
-      - 1.0.6
-      - 1.0.7
-      - 1.0.8
       - 2.0.0
       - 2.0.1
       - 2.1.0
@@ -211,7 +202,7 @@ Resources:
                 - cd installer/
                 - sed -i "s/^dockerhub_version=latest/dockerhub_version=$AWS_VERSION/g" inventory
                 - echo ansible-playbook -i inventory -e awx_version="$AWX_VERSION" -e pg_hostname="$pg_hostname" -e pg_username="$pg_username" -e pg_password="$pg_password" -e pg_database="awx" -e pg_port=5432 -e default_admin_user="$awx_username" -e default_admin_password="$awx_password" install.yml
-                - ansible-playbook -i inventory -e awx_version="$AWX_VERSION" -e pg_hostname="$pg_hostname" -e pg_username="$pg_username" -e pg_password="$pg_password" -e pg_database="awx" -e pg_port=5432 -e default_admin_user="$awx_username" -e default_admin_password="$awx_password" install.yml
+                - ansible-playbook -vvv -i inventory -e awx_version="$AWX_VERSION" -e pg_hostname="$pg_hostname" -e pg_username="$pg_username" -e pg_password="$pg_password" -e pg_database="awx" -e pg_port=5432 -e default_admin_user="$awx_username" -e default_admin_password="$awx_password" install.yml
                 - sleep 240
                 - docker container ls --all
                 - docker image ls --all

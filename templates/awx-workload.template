@@ -116,17 +116,8 @@ Parameters:
   AWXVersion:
     Description: Which version of AWX to use
     Type: String
-    Default: 1.0.1
+    Default: 3.0.1
     AllowedValues:
-      - 1.0.1
-      - 1.0.0
-      - 1.0.2
-      - 1.0.3
-      - 1.0.4
-      - 1.0.5
-      - 1.0.6
-      - 1.0.7
-      - 1.0.8
       - 2.0.0
       - 2.0.1
       - 2.1.0
