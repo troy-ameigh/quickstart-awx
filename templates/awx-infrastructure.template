@@ -456,7 +456,7 @@ Parameters:
 Mappings:
   AWSAMIRegionMap:
     AMI:
-      ECSAMI: "ECS Optimized AMI"
+      ECSAMI: "amzn2-ami-ecs-hvm-2.0.20190402-x86_64-ebs"
     eu-north-1: 
       ECSAMI: "ami-036cf93383aba5279"
     ap-south-1: 
