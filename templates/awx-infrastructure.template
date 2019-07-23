@@ -31,6 +31,11 @@ Parameters:
       a new repository
     Type: String
     Default: ''
+  SidecarECRRepositoryName:
+    Description: Name of existing sidecar ECR Repository, leave blank to create
+      a new repository
+    Type: String
+    Default: ''
   DatabaseEndpoint:
     Description: Endpoint for postgres database, leave blank to create a new RDS database
     Type: String
@@ -543,6 +548,7 @@ Conditions:
   CreateAWXTaskECRRepository: !Equals [!Ref 'AWXTaskECRRepositoryName', '']
   CreateAWXRabbitMQECRRepository: !Equals [!Ref 'AWXRabbitMQECRRepositoryName', '']
   CreateAWXMemcachedECRRepository: !Equals [!Ref 'AWXMemcachedECRRepositoryName', '']
+  CreateSidecarECRRepository: !Equals [!Ref 'SidecarECRRepositoryName', '']
   CreateDummy: !And [!Not [!Equals [!Ref 'ECSClusterName', '']], !Not [!Equals [!Ref 'ALBArn',
         '']], !Not [!Equals [!Ref 'DatabaseEndpoint', '']], !Not [!Equals [!Ref 'AWXWebECRRepositoryName',
         '']], !Not [!Equals [!Ref 'AWXTaskECRRepositoryName', '']], !Not [!Equals [
@@ -725,6 +731,9 @@ Resources:
   AWXRabbitMQECRRepository:
     Condition: CreateAWXRabbitMQECRRepository
     Type: AWS::ECR::Repository
+  SidecarECRRepository:
+    Condition: CreateSidecarECRRepository
+    Type: AWS::ECR::Repository
   DBInstance:
     Condition: CreateRDS
     Type: AWS::RDS::DBInstance
@@ -743,9 +752,9 @@ Resources:
       DBSubnetGroupName: !Ref 'DBSubnetGroup'
       Engine: postgres
       EngineVersion: !Ref 'EngineVersion'
-      Iops: !If [100GB, '1000', !If [300GB, '3000', !If [600GB, '6000', !If [1000GB,
-              '10000', !If [1500GB, '15000', !If [2000GB, '20000', !If [3000GB, '30000',
-                    !If [4000GB, '40000', '60000']]]]]]]]
+      Iops: !If [100GB, 1000, !If [300GB, 3000, !If [600GB, 6000, !If [1000GB,
+              10000, !If [1500GB, 15000, !If [2000GB, 20000, !If [3000GB, 30000,
+                    !If [4000GB, 40000, 60000]]]]]]]]
       KmsKeyId: !GetAtt 'KMSKey.Arn'
       LicenseModel: postgresql-license
       MasterUsername: !Ref 'MasterUsername'
@@ -795,8 +804,8 @@ Resources:
     Type: AWS::KMS::Key
     Properties:
       Description: !Sub 'Application: AWX Database: ${DBName}'
-      Enabled: 'true'
-      EnableKeyRotation: 'true'
+      Enabled: true
+      EnableKeyRotation: true
       KeyPolicy:
         Version: '2012-10-17'
         Id: key-default-1
@@ -851,8 +860,8 @@ Resources:
           CidrIp: '172.17.0.0/24'
       SecurityGroupEgress:
         - IpProtocol: '-1'
-          FromPort: '-1'
-          ToPort: '-1'
+          FromPort: -1
+          ToPort: -1
           CidrIp: 0.0.0.0/0
 Outputs:
   Cluster:
@@ -869,8 +878,11 @@ Outputs:
     Description: A reference to the awx_web ECR repository
     Value: !If [CreateAWXWebECRRepository, !Ref 'AWXWebECRRepository', !Ref 'AWXWebECRRepositoryName']
   AWXTaskRegistry:
-    Description: A reference to the ECR repository
+    Description: A reference to the awx_task repository
     Value: !If [CreateAWXTaskECRRepository, !Ref 'AWXTaskECRRepository', !Ref 'AWXTaskECRRepositoryName']
+  SidecarRegistry:
+    Description: A reference to the sidecar repository
+    Value: !If [CreateSidecarECRRepository, !Ref 'SidecarECRRepository', !Ref 'SidecarECRRepositoryName']
   DBEndpoint:
     Description: Database endpoint
     Value: !If [CreateRDS, !GetAtt 'DBInstance.Endpoint.Address', !Ref 'DatabaseEndpoint']

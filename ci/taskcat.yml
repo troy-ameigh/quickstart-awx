@@ -18,8 +18,23 @@ global:
     - us-east-2
   reporting: true
 tests:
-  awx:
-    parameter_input: awx-master-input.json
+  awx-v4:
+    parameter_input: awx-master-v4-input.json
     template_file: awx-master.template
     regions:
-      - us-west-2
+      - us-east-2
+  awx-v5:
+    parameter_input: awx-master-v5-input.json
+    template_file: awx-master.template
+    regions:
+      - eu-west-2
+  awx-v6:
+    parameter_input: awx-master-v6-input.json
+    template_file: awx-master.template
+    regions:
+      - us-east-1
+  awx-v6-1:
+    parameter_input: awx-master-v6.1-input.json
+    template_file: awx-master.template
+    regions:
+      - us-west-1

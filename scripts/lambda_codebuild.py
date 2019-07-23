@@ -100,7 +100,7 @@ def cleanup_images(event):
     loop over and delete images in each repo
     """
     properties = event['ResourceProperties']
-    for repository in ['AWXTaskRegistry','AWXWebRegistry','RabbitMQRegistry','MemcachedRegistry']:
+    for repository in ['AWXTaskRegistry','AWXWebRegistry','RabbitMQRegistry','MemcachedRegistry', 'SidecarRegistry']:
         logger.debug("Cleaning Up: " + repository)
         logger.debug("Trying to cleanup: " + properties[repository])
         cleanup_images_repo(properties[repository])
