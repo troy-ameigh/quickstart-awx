@@ -92,16 +92,12 @@ Parameters:
   AWXVersion:
     Description: Which version of AWX to use
     Type: String
-    Default: 3.0.1
+    Default: 6.1.0
     AllowedValues:
-      - 2.0.0
-      - 2.0.1
-      - 2.1.0
-      - 2.1.1
-      - 2.1.2
-      - 3.0.0
-      - 3.0.1
       - 4.0.0
+      - 5.0.0
+      - 6.0.0
+      - 6.1.0
   AWXAdminPassword:
     Description: AWX Admin Password. Required
     Type: String
@@ -335,7 +331,6 @@ Resources:
         PublicSubnet2CIDR: !Ref 'PublicSubnet2CIDR'
         VPCCIDR: !Ref 'VPCCIDR'
   WorkloadStack:
-    DependsOn: VPCStack
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub ['https://${QSS3BucketName}.${QSS3Region}.amazonaws.com/${QSS3KeyPrefix}templates/awx-workload.template',

@@ -13,7 +13,7 @@
     },
     {
         "ParameterKey": "AWXVersion",
-        "ParameterValue": "3.0.1"
+        "ParameterValue": "6.1.0"
     },
     {
         "ParameterKey": "AvailabilityZones",
@@ -33,7 +33,7 @@
     },
     {
         "ParameterKey": "KeyPairName",
-        "ParameterValue": "tonynv"
+        "ParameterValue": "tonyv"
     },
     {
         "ParameterKey": "MasterUserPassword",
