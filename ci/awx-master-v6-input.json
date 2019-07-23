@@ -13,7 +13,7 @@
     },
     {
         "ParameterKey": "AWXVersion",
-        "ParameterValue": "6.1.0"
+        "ParameterValue": "6.0.0"
     },
     {
         "ParameterKey": "AvailabilityZones",
