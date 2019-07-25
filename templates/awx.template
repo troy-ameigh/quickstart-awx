@@ -180,8 +180,6 @@ Resources:
           - Name: cfn_request_id
             Value: 'placeholder'
       Source:
-        Auth:
-          Type: OAUTH
         Location:
           !Join
             - '#'
