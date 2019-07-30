@@ -44,7 +44,7 @@ Parameters:
     Description: Which instance type should we use to build the ECS cluster? Only
       applicable if ECSClusterName is blank
     Type: String
-    Default: c4.2xlarge
+    Default: t3.large
   ClusterSize:
     Description: How many ECS hosts do you want to initially deploy? Only applicable
       if ECSClusterName is blank
@@ -134,7 +134,7 @@ Parameters:
     Description: The compute and memory capacity of the DB instance. Only applicable
       if DatabaseEndpoint is blank
     Type: String
-    Default: db.t2.medium
+    Default: db.t3.medium
     AllowedValues:
       - db.m1.small
       - db.m1.medium
@@ -157,10 +157,10 @@ Parameters:
       - db.r3.2xlarge
       - db.r3.4xlarge
       - db.r3.8xlarge
-      - db.t2.micro
-      - db.t2.small
-      - db.t2.medium
-      - db.t2.large
+      - db.t3.micro
+      - db.t3.small
+      - db.t3.medium
+      - db.t3.large
   DBName:
     Description: The name of the database to create when the DB instance is created.
       Only applicable if DatabaseEndpoint is blank
@@ -175,23 +175,14 @@ Parameters:
     Description: The version number of the database engine to use. Only applicable
       if DatabaseEndpoint is blank
     Type: String
-    Default: 9.6.3
+    Default: 9.6.14
     AllowedValues:
-      - 9.3.12
-      - 9.3.14
-      - 9.3.16
-      - 9.3.17
-      - 9.4.7
-      - 9.4.9
-      - 9.4.11
-      - 9.4.12
-      - 9.5.2
-      - 9.5.4
-      - 9.5.6
-      - 9.5.7
-      - 9.6.1
-      - 9.6.2
-      - 9.6.3
+      - 9.6.9
+      - 9.6.10
+      - 9.6.11
+      - 9.6.12
+      - 9.6.13
+      - 9.6.14
   MasterUserPassword:
     Description: Master user database Password. Only applicable if DatabaseEndpoint
       is blank
@@ -495,49 +486,22 @@ Mappings:
     us-west-2: 
       ECSAMI: "ami-0054160a688deeb6a"
   Version2Family:
-    9.3.12:
-      Family: postgres9.3
-      MajorVersion: '9.3'
-    9.3.14:
-      Family: postgres9.3
-      MajorVersion: '9.3'
-    9.3.16:
-      Family: postgres9.3
-      MajorVersion: '9.3'
-    9.3.17:
-      Family: postgres9.3
-      MajorVersion: '9.3'
-    9.4.7:
-      Family: postgres9.4
-      MajorVersion: '9.4'
-    9.4.9:
-      Family: postgres9.4
-      MajorVersion: '9.4'
-    9.4.11:
-      Family: postgres9.4
-      MajorVersion: '9.4'
-    9.4.12:
-      Family: postgres9.4
-      MajorVersion: '9.4'
-    9.5.2:
-      Family: postgres9.5
-      MajorVersion: '9.5'
-    9.5.4:
-      Family: postgres9.5
-      MajorVersion: '9.5'
-    9.5.6:
-      Family: postgres9.5
-      MajorVersion: '9.5'
-    9.5.7:
-      Family: postgres9.5
-      MajorVersion: '9.5'
-    9.6.1:
+    9.6.9:
       Family: postgres9.6
       MajorVersion: '9.6'
-    9.6.2:
+    9.6.10:
       Family: postgres9.6
       MajorVersion: '9.6'
-    9.6.3:
+    9.6.11:
+      Family: postgres9.6
+      MajorVersion: '9.6'
+    9.6.12:
+      Family: postgres9.6
+      MajorVersion: '9.6'
+    9.6.13:
+      Family: postgres9.6
+      MajorVersion: '9.6'
+    9.6.14:
       Family: postgres9.6
       MajorVersion: '9.6'
 Conditions:
