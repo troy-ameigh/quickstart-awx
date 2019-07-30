@@ -120,11 +120,11 @@ Parameters:
   InstanceType:
     Description: Which instance type should we use to build the ECS cluster?
     Type: String
-    Default: m4.large
+    Default: t3.large
   DBInstanceClass:
     Description: The compute and memory capacity of the DB instance.
     Type: String
-    Default: db.t2.medium
+    Default: db.t3.medium
     AllowedValues:
       - db.m1.small
       - db.m1.medium
@@ -147,10 +147,10 @@ Parameters:
       - db.r3.2xlarge
       - db.r3.4xlarge
       - db.r3.8xlarge
-      - db.t2.micro
-      - db.t2.small
-      - db.t2.medium
-      - db.t2.large
+      - db.t3.micro
+      - db.t3.small
+      - db.t3.medium
+      - db.t3.large
   KeyPairName:
     Description: Public/private key pairs allow you to securely connect to your instance after it launches
     Type: AWS::EC2::KeyPair::KeyName

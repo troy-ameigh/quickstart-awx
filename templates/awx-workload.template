@@ -152,7 +152,7 @@ Parameters:
   DBInstanceClass:
     Description: The compute and memory capacity of the RDS instance.
     Type: String
-    Default: db.t2.medium
+    Default: db.t3.medium
     AllowedValues:
       - db.m1.small
       - db.m1.medium
@@ -175,10 +175,10 @@ Parameters:
       - db.r3.2xlarge
       - db.r3.4xlarge
       - db.r3.8xlarge
-      - db.t2.micro
-      - db.t2.small
-      - db.t2.medium
-      - db.t2.large
+      - db.t3.micro
+      - db.t3.small
+      - db.t3.medium
+      - db.t3.large
   PreferredBackupWindow:
     Description: The daily time range in UTC during which automated backups are created
       (if automated backups are enabled). Cannot overlap with PreferredMaintenanceWindowTime.

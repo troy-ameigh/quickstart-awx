@@ -25,11 +25,11 @@
     },
     {
         "ParameterKey": "DBInstanceClass",
-        "ParameterValue": "db.t2.medium"
+        "ParameterValue": "db.t3.medium"
     },
     {
         "ParameterKey": "InstanceType",
-        "ParameterValue": "m4.large"
+        "ParameterValue": "t3.large"
     },
     {
         "ParameterKey": "KeyPairName",
