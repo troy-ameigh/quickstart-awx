@@ -409,7 +409,7 @@ Resources:
             - - !Ref QSS3KeyPrefix
               - "scripts/lambda_codebuild.zip"
       Handler: !Sub "lambda_codebuild.lambda_handler"
-      Runtime: python2.7
+      Runtime: python3.6
       Timeout: 300
       Role: !GetAtt BuildContainersLambdaExecutionRole.Arn
   BuildContainersLambdaExecutionRole:
