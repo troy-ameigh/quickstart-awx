@@ -2,6 +2,9 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: 'AWX cluster + VPC + ECS, License: Apache 2.0 (Please do not remove)'
 Metadata:
   AWS::CloudFormation::Interface:
+    QuickStartDocumentation:
+      EntrypointName: "Launch into a new VPC"
+      Order: "1"
     ParameterGroups:
       - Label:
           default: Network Configuration
@@ -29,6 +32,7 @@ Metadata:
           - PreferredMaintenanceWindowDay
           - PreferredMaintenanceWindowStartTime
           - PreferredMaintenanceWindowEndTime
+          - BackupRetentionPeriod
       - Label:
           default: AWX Configuration
         Parameters:
@@ -83,6 +87,8 @@ Metadata:
         default: Maintenance period - start time
       PreferredMaintenanceWindowEndTime:
         default: Maintenance period -  end time
+      BackupRetentionPeriod:
+        defaults: Period in days to keep snapshots backups
       AWXAdminUsername:
         default: AWX Admin Username
       AWXAdminPassword:
@@ -95,12 +101,9 @@ Parameters:
   AWXVersion:
     Description: Which version of AWX to use
     Type: String
-    Default: 6.1.0
+    Default: 17.1.0
     AllowedValues:
-      - 4.0.0
-      - 5.0.0
-      - 6.0.0
-      - 6.1.0
+      - 17.1.0
   AWXAdminPassword:
     Description: AWX Admin Password. Required
     Type: String
@@ -127,7 +130,7 @@ Parameters:
   DBInstanceClass:
     Description: The compute and memory capacity of the DB instance.
     Type: String
-    Default: db.t3.medium
+    Default: db.m4.large
     AllowedValues:
       - db.m1.small
       - db.m1.medium
@@ -154,6 +157,14 @@ Parameters:
       - db.t3.small
       - db.t3.medium
       - db.t3.large
+  BackupRetentionPeriod:
+    Description: The number of days during which automatic DB snapshots are retained.
+      Setting 0 disables automatic snapshots, maximum value is 35. Only applicable
+      if DatabaseEndpoint is blank
+    Type: Number
+    Default: '35'
+    MinValue: '0'
+    MaxValue: '35'
   KeyPairName:
     Description: Public/private key pairs allow you to securely connect to your instance after it launches
     Type: AWS::EC2::KeyPair::KeyName
@@ -326,7 +337,7 @@ Resources:
     Properties:
       TemplateURL: 
         !Sub 
-          - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}submodules/quickstart-aws-vpc/templates/aws-vpc.template'
+          - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}submodules/quickstart-aws-vpc/templates/aws-vpc.template.yaml'
           - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
             S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
       Parameters:
@@ -374,6 +385,7 @@ Resources:
         PreferredMaintenanceWindowStartTime: !Ref 'PreferredMaintenanceWindowStartTime'
         PreferredMaintenanceWindowEndTime: !Ref 'PreferredMaintenanceWindowEndTime'
         DBInstanceClass: !Ref 'DBInstanceClass'
+        BackupRetentionPeriod: !Ref 'BackupRetentionPeriod'
         # Quick Starts related
         QSS3BucketName: !Ref 'QSS3BucketName'
         QSS3KeyPrefix: !Ref 'QSS3KeyPrefix'

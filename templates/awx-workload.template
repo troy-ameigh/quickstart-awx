@@ -2,6 +2,9 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: 'This template deploys ECS Cluster ALB and AWX Cluster into a provided VPC: (Please do not remove) (qs-1ogc5q7i0)'
 Metadata:
   AWS::CloudFormation::Interface:
+    QuickStartDocumentation:
+      EntrypointName: "Launch into an existing VPC"
+      Order: "2"
     ParameterGroups:
       - Label:
           default: Network Configuration
@@ -83,6 +86,8 @@ Metadata:
         default: Maintenance period - start time
       PreferredMaintenanceWindowEndTime:
         default: Maintenance period -  end time
+      BackupRetentionPeriod:
+        defaults: Period in days to keep snapshots backups
       AWXAdminUsername:
         default: AWX Admin Username
       AWXAdminPassword:
@@ -119,12 +124,9 @@ Parameters:
   AWXVersion:
     Description: Which version of AWX to use
     Type: String
-    Default: 6.1.0
+    Default: 17.1.0
     AllowedValues:
-      - 4.0.0
-      - 5.0.0
-      - 6.0.0
-      - 6.1.0
+      - 17.1.0
   AWXAdminPassword:
     Description: AWX Admin Password. Required
     Type: String
@@ -290,7 +292,14 @@ Parameters:
     MinLength: 1
     MaxLength: 63 
     Type: String
-
+  BackupRetentionPeriod:
+    Description: The number of days during which automatic DB snapshots are retained.
+      Setting 0 disables automatic snapshots, maximum value is 35. Only applicable
+      if DatabaseEndpoint is blank
+    Type: Number
+    Default: '35'
+    MinValue: '0'
+    MaxValue: '35'
   # QuickStart Related
   QSS3BucketName:
     AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
@@ -349,14 +358,15 @@ Resources:
         PreferredMaintenanceWindowDay: !Ref 'PreferredMaintenanceWindowDay'
         PreferredMaintenanceWindowStartTime: !Ref 'PreferredMaintenanceWindowStartTime'
         PreferredMaintenanceWindowEndTime: !Ref 'PreferredMaintenanceWindowEndTime'
+        BackupRetentionPeriod: !Ref BackupRetentionPeriod
         RDSAccessCidr: !Ref 'RDSAccessCidr'
         RDSSubnets: !Sub '${PrivateSubnet1ID},${PrivateSubnet2ID}'
         DBInstanceClass: !Ref DBInstanceClass
   AWXStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: 
-        !Sub 
+      TemplateURL:
+        !Sub
           - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/awx.template'
           - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
             S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
@@ -378,6 +388,7 @@ Resources:
         AWXAdminPassword: !Ref 'AWXAdminPassword'
         ALBARN: !GetAtt 'InfrastructureStack.Outputs.ALBARN'
         VPC: !Ref 'VPC'
+        Subnet: !Ref PrivateSubnet1ID
 Outputs:
   ALBDNSName:
     Description: "Http Endpoint for AWX Cluster"
