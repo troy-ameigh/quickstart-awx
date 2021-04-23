@@ -247,17 +247,29 @@ Resources:
                 - mkdir sidecar/tmp
                 - ls -lah /root/.awx/awxcompose/
                 - cat /root/.awx/awxcompose/environment.sh
+                - cat /root/.awx/awxcompose/redis.conf
                 - cp -drpu /root/.awx/awxcompose/ sidecar/tmp/
+                - cp roles/image_build/files/settings.py sidecar/tmp/awxcompose/
                 - ls
-                - echo "FROM ansible/awx:${AWX_VERSION}" > sidecar/Dockerfile
+                #- echo "FROM ansible/awx:${AWX_VERSION}" > sidecar/Dockerfile
+                - echo "FROM busybox" > sidecar/Dockerfile
+                - echo "RUN mkdir -p /etc/tower/" >> sidecar/Dockerfile
                 - echo "VOLUME /etc/tower/" >> sidecar/Dockerfile
                 - echo "COPY --chown=1000 /tmp/awxcompose/credentials.py /etc/tower/conf.d/credentials.py" >> sidecar/Dockerfile
+                - echo "COPY --chown=1000 /tmp/awxcompose/settings.py /etc/tower/settings.py" >> sidecar/Dockerfile
                 - echo "COPY --chown=1000 /tmp/awxcompose/SECRET_KEY /etc/tower/SECRET_KEY" >> sidecar/Dockerfile
+                - echo "COPY --chown=1000 /tmp/awxcompose/nginx.conf /etc/nginx/nginx.conf" >> sidecar/Dockerfile
+                - echo "VOLUME /etc/nginx/" >> sidecar/Dockerfile
                 - echo "COPY --chown=1000 /tmp/awxcompose/environment.sh /etc/tower/conf.d/environment.sh" >> sidecar/Dockerfile
+                - echo "RUN mkdir -p /usr/local/etc/redis/" >> sidecar/Dockerfile
+                - echo "RUN chmod 0777 /usr/local/etc/redis/" >> sidecar/Dockerfile
                 - echo "VOLUME /usr/local/etc/redis/" >> sidecar/Dockerfile
                 - echo "COPY --chown=1000 /tmp/awxcompose/redis.conf /usr/local/etc/redis/redis.conf" >> sidecar/Dockerfile
-                - | 
-                  echo 'CMD exec /bin/bash -c "trap : TERM INT; sleep infinity & wait"' >> sidecar/Dockerfile
+                - echo "RUN mkdir -p /var/run/redis" >> sidecar/Dockerfile
+                - echo "RUN chmod 0777 /var/run/redis/" >> sidecar/Dockerfile
+                - echo "VOLUME /var/run/redis/" >> sidecar/Dockerfile
+                - |
+                  echo 'CMD exec /bin/sh -c "trap : TERM INT; sleep infinity & wait"' >> sidecar/Dockerfile
                 - docker build -t sidecar:${AWX_VERSION} sidecar
                 - docker ps -a
                 - docker image ls --all
@@ -304,7 +316,7 @@ Resources:
                     curl -X PUT -H 'Content-Type:' -d "{\"StackId\":\"$cfn_stack_id\", \"RequestId\":\"$cfn_request_id\", \"LogicalResourceId\":\"$cfn_logical_resource_id\", \"PhysicalResourceId\":\"$UUID\", \"Status\":\"FAILED\"}" "$cfn_signal_url"
                   fi
       # FIXME: get this close to the actual time things take with 5 minute margin added for safety
-      TimeoutInMinutes: 60
+      TimeoutInMinutes: 30
   CopyZipsRole:
     Type: AWS::IAM::Role
     Properties:
@@ -432,8 +444,8 @@ Resources:
       MemcachedRegistry: !Ref MemcachedRegistry
       RabbitMQRegistry: !Ref  RabbitMQRegistry
       SidecarRegistry: !Ref  SidecarRegistry
-      # cfn_signal_url: is part of the event by default hence missing here 
-      # cfn_stack_id: is part of the event by default 
+      # cfn_signal_url: is part of the event by default hence missing here
+      # cfn_stack_id: is part of the event by default
       # cfn_request_id: also part of the event
       # cfn_logical_resource_id: also part of the event
       # Lambda function passes the above into the build project when invoking StartBuild
@@ -528,7 +540,7 @@ Resources:
       LoadBalancers:
         - ContainerName: awxweb
           ContainerPort: 8052
-          TargetGroupArn: !Ref TargetGroup 
+          TargetGroupArn: !Ref TargetGroup
   ContainerLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -537,8 +549,16 @@ Resources:
     Type: AWS::ECS::TaskDefinition
     DependsOn: BuildContainers
     Properties:
+#      Volumes:
+#        - Host:
+#            SourcePath: "/var/run/redis_socket/"
+#          DockerVolumeConfiguration:
+#            Driver: host
+#            Scope: shared
+#          Name: "redis_socket"
       ContainerDefinitions:
         - Name: awxweb
+          Privileged: true
           Hostname: awxweb
           Essential: true
           Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${AWXWebRegistry}:${AWXVersion}
@@ -563,6 +583,9 @@ Resources:
             - "redis:redis"
           VolumesFrom:
             - SourceContainer: "sidecar"
+#          MountPoints:
+#            - SourceVolume: "redis_socket"
+#              ContainerPath: "/var/run/redis/"
           Environment:
             - Name: "http_proxy"
               Value: ""
@@ -581,6 +604,7 @@ Resources:
             - Name: "HOME"
               Value: "/var/lib/awx"
         - Name: awxtask
+          Privileged: true
           Command:
             - "/usr/bin/tini"
             - "--"
@@ -601,6 +625,9 @@ Resources:
               awslogs-stream-prefix: awx_task
           VolumesFrom:
             - SourceContainer: "sidecar"
+#          MountPoints:
+#            - SourceVolume: "redis_socket"
+#              ContainerPath: "/var/run/redis/"
           Environment:
             - Name: "http_proxy"
               Value: ""
@@ -623,10 +650,13 @@ Resources:
             - Name: "HOME"
               Value: "/var/lib/awx"
         - Name: redis
+          Privileged: true
           Command:
             - "docker-entrypoint.sh"
             - "/usr/local/etc/redis/redis.conf"
           Hostname: redis
+          Links:
+            - "sidecar:sidecar"
           Essential: true
           Image: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${MemcachedRegistry}:${AWXVersion}
           Memory: 2048
@@ -651,12 +681,15 @@ Resources:
             - ContainerPort: 6379
           VolumesFrom:
             - SourceContainer: "sidecar"
+#          MountPoints:
+#            - SourceVolume: "redis_socket"
+#              ContainerPath: "/var/run/redis/"
           LogConfiguration:
             LogDriver: awslogs
             Options:
               awslogs-group: !Ref ContainerLogGroup
               awslogs-region: !Sub ${AWS::Region}
-              awslogs-stream-prefix: memcached
+              awslogs-stream-prefix: redis
         - Name: sidecar
           Hostname: sidecar
           Essential: true
@@ -674,7 +707,7 @@ Resources:
       VpcId: !Ref VPC
       Port: 80
       Protocol: HTTP
-      Matcher: 
+      Matcher:
         HttpCode: 200-499
       HealthCheckIntervalSeconds: 10
       HealthCheckPath: /
@@ -692,7 +725,7 @@ Resources:
         - "/"
       Actions:
       - Type: forward
-        TargetGroupArn: 
+        TargetGroupArn:
           Ref: TargetGroup
   Listener:
     Type: AWS::ElasticLoadBalancingV2::Listener

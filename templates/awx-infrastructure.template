@@ -579,6 +579,8 @@ Resources:
           commands:
             01_add_instance_to_cluster:
               command: !Sub 'echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config'
+            02_create_redis_socket:
+              command: !Sub 'mkdir -p /var/run/redis_socket/'
           files:
             /etc/cfn/cfn-hup.conf:
               mode: 256
