@@ -1,7 +1,10 @@
 project:
   name: quickstart-awx
   owner: quickstart-eng@amazon.com
-  package_lambda: false
+  package_lambda: true
+  lambda_source_path: functions/source
+  lambda_zip_path: functions/packages
+  shorten_stack_name: true
   regions:
   - us-east-1
   - us-west-1
@@ -16,125 +19,26 @@ project:
   - ap-southeast-2
   - eu-central-1
   - us-east-2
-  s3_bucket: ''
+  parameters:
+    AWXAdminPassword: $[taskcat_genpass_8A]
+    AWXAdminUsername: admin
+    AWXGitHubRepo: https://github.com/ansible/awx.git
+    AvailabilityZones: $[taskcat_genaz_2]
+    ClusterSize: 2
+    DBInstanceClass: db.t3.medium
+    InstanceType: t3.large
+    MasterUserPassword: $[taskcat_genpass_8A]
+    MasterUsername: cidbadmin
+    QSS3BucketName: $[taskcat_autobucket]
+    QSS3KeyPrefix: quickstart-awx/
+    QSS3BucketRegion: $[taskcat_current_region]
+    BackupRetentionPeriod: 0
 tests:
-  awx-v4:
-    parameters:
-      AWXAdminPassword: $[taskcat_genpass_8A]
-      AWXAdminUsername: admin
-      AWXGitHubRepo: https://github.com/ansible/awx.git
-      AWXVersion: 4.0.0
-      AvailabilityZones: $[taskcat_genaz_2]
-      ClusterSize: 2
-      DBInstanceClass: db.t3.medium
-      InstanceType: t3.large
-      KeyPairName: tonynv
-      MasterUserPassword: $[taskcat_genpass_8A]
-      MasterUsername: cidbadmin
-      PreferredBackupWindow: 00:00-02:00
-      PreferredMaintenanceWindowDay: Mon
-      PreferredMaintenanceWindowEndTime: 06:00
-      PreferredMaintenanceWindowStartTime: 04:00
-      PrivateSubnet1CIDR: 10.0.0.0/19
-      PrivateSubnet2CIDR: 10.0.32.0/19
-      PublicSubnet1CIDR: 10.0.128.0/20
-      PublicSubnet2CIDR: 10.0.144.0/20
-      QSS3BucketName: $[taskcat_autobucket]
-      QSS3KeyPrefix: quickstart-awx/
-      QSS3BucketRegion: $[taskcat_current_region]
-      RemoteAccessCIDR: 10.0.0.0/16
-      VPCCIDR: 10.0.0.0/16
-    regions:
-    - ca-central-1
-    s3_bucket: ''
+  awx-v17-1-0:
     template: templates/awx-master.template
-  awx-v5:
     parameters:
-      AWXAdminPassword: $[taskcat_genpass_8A]
-      AWXAdminUsername: admin
-      AWXGitHubRepo: https://github.com/ansible/awx.git
-      AWXVersion: 5.0.0
-      AvailabilityZones: $[taskcat_genaz_2]
-      ClusterSize: 2
-      DBInstanceClass: db.t3.medium
-      InstanceType: t3.large
-      KeyPairName: tonynv
-      MasterUserPassword: $[taskcat_genpass_8A]
-      MasterUsername: cidbadmin
-      PreferredBackupWindow: 00:00-02:00
-      PreferredMaintenanceWindowDay: Mon
-      PreferredMaintenanceWindowEndTime: 06:00
-      PreferredMaintenanceWindowStartTime: 04:00
-      PrivateSubnet1CIDR: 10.0.0.0/19
-      PrivateSubnet2CIDR: 10.0.32.0/19
-      PublicSubnet1CIDR: 10.0.128.0/20
-      PublicSubnet2CIDR: 10.0.144.0/20
-      QSS3BucketName: $[taskcat_autobucket]
-      QSS3KeyPrefix: quickstart-awx/
-      QSS3BucketRegion: $[taskcat_current_region]
-      RemoteAccessCIDR: 10.0.0.0/16
-      VPCCIDR: 10.0.0.0/16
+      AWXVersion: 17.1.0
+      KeyPairName: overridden
+      RemoteAccessCIDR: overridden
     regions:
-    - eu-west-3
-    s3_bucket: ''
-    template: templates/awx-master.template
-  awx-v6:
-    parameters:
-      AWXAdminPassword: $[taskcat_genpass_8A]
-      AWXAdminUsername: admin
-      AWXGitHubRepo: https://github.com/ansible/awx.git
-      AWXVersion: 6.0.0
-      AvailabilityZones: $[taskcat_genaz_2]
-      ClusterSize: 2
-      DBInstanceClass: db.t3.medium
-      InstanceType: t3.large
-      KeyPairName: tonynv
-      MasterUserPassword: $[taskcat_genpass_8A]
-      MasterUsername: cidbadmin
-      PreferredBackupWindow: 00:00-02:00
-      PreferredMaintenanceWindowDay: Mon
-      PreferredMaintenanceWindowEndTime: 06:00
-      PreferredMaintenanceWindowStartTime: 04:00
-      PrivateSubnet1CIDR: 10.0.0.0/19
-      PrivateSubnet2CIDR: 10.0.32.0/19
-      PublicSubnet1CIDR: 10.0.128.0/20
-      PublicSubnet2CIDR: 10.0.144.0/20
-      QSS3BucketName: $[taskcat_autobucket]
-      QSS3KeyPrefix: quickstart-awx/
-      QSS3BucketRegion: $[taskcat_current_region]
-      RemoteAccessCIDR: 10.0.0.0/16
-      VPCCIDR: 10.0.0.0/16
-    regions:
-    - eu-north-1
-    s3_bucket: ''
-    template: templates/awx-master.template
-  awx-v6-1:
-    parameters:
-      AWXAdminPassword: $[taskcat_genpass_8A]
-      AWXAdminUsername: admin
-      AWXGitHubRepo: https://github.com/ansible/awx.git
-      AWXVersion: 6.1.0
-      AvailabilityZones: $[taskcat_genaz_2]
-      ClusterSize: 2
-      DBInstanceClass: db.t3.medium
-      InstanceType: t3.large
-      KeyPairName: tonynv
-      MasterUserPassword: $[taskcat_genpass_8A]
-      MasterUsername: cidbadmin
-      PreferredBackupWindow: 00:00-02:00
-      PreferredMaintenanceWindowDay: Mon
-      PreferredMaintenanceWindowEndTime: 06:00
-      PreferredMaintenanceWindowStartTime: 04:00
-      PrivateSubnet1CIDR: 10.0.0.0/19
-      PrivateSubnet2CIDR: 10.0.32.0/19
-      PublicSubnet1CIDR: 10.0.128.0/20
-      PublicSubnet2CIDR: 10.0.144.0/20
-      QSS3BucketName: $[taskcat_autobucket]
-      QSS3KeyPrefix: quickstart-awx/
-      QSS3BucketRegion: $[taskcat_current_region]
-      RemoteAccessCIDR: 10.0.0.0/16
-      VPCCIDR: 10.0.0.0/16
-    regions:
-    - eu-central-1
-    s3_bucket: ''
-    template: templates/awx-master.template
+    - eu-west-1

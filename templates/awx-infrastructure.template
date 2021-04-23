@@ -175,14 +175,9 @@ Parameters:
     Description: The version number of the database engine to use. Only applicable
       if DatabaseEndpoint is blank
     Type: String
-    Default: 9.6.14
+    Default: 13.2
     AllowedValues:
-      - 9.6.9
-      - 9.6.10
-      - 9.6.11
-      - 9.6.12
-      - 9.6.13
-      - 9.6.14
+      - 13.2
   MasterUserPassword:
     Description: Master user database Password. Only applicable if DatabaseEndpoint
       is blank
@@ -190,7 +185,7 @@ Parameters:
     NoEcho: 'true'
   MasterUsername:
     Description: Master database Username. Only applicable if DatabaseEndpoint is
-      blank
+      blank2
     Type: String
   MonitoringInterval:
     Description: The interval, in seconds, between points when Enhanced Monitoring
@@ -486,24 +481,9 @@ Mappings:
     us-west-2: 
       ECSAMI: "ami-0054160a688deeb6a"
   Version2Family:
-    9.6.9:
-      Family: postgres9.6
-      MajorVersion: '9.6'
-    9.6.10:
-      Family: postgres9.6
-      MajorVersion: '9.6'
-    9.6.11:
-      Family: postgres9.6
-      MajorVersion: '9.6'
-    9.6.12:
-      Family: postgres9.6
-      MajorVersion: '9.6'
-    9.6.13:
-      Family: postgres9.6
-      MajorVersion: '9.6'
-    9.6.14:
-      Family: postgres9.6
-      MajorVersion: '9.6'
+    "13.2":
+      Family: postgres13
+      MajorVersion: '13'
 Conditions:
   CreateECSCluster: !Equals [!Ref 'ECSClusterName', '']
   CreateALB: !Equals [!Ref 'ALBArn', '']
@@ -599,6 +579,8 @@ Resources:
           commands:
             01_add_instance_to_cluster:
               command: !Sub 'echo ECS_CLUSTER=${ECSCluster} >> /etc/ecs/ecs.config'
+            02_create_redis_socket:
+              command: !Sub 'mkdir -p /var/run/redis_socket/'
           files:
             /etc/cfn/cfn-hup.conf:
               mode: 256
